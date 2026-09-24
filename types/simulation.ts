@@ -25,6 +25,9 @@ export interface Cell {
   idade: number;
 }
 
+/** Representação canônica da matriz bidimensional do autômato celular */
+export type Grid = Cell[][];
+
 /** Coordenada de uma célula na grade */
 export interface GridCoord {
   col: number;
