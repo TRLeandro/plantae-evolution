@@ -19,12 +19,15 @@ export interface SimulationCanvasProps {
   onCellClick?: (coord: GridCoord, cell: Cell) => void;
   /** Quantidade de frames p5 entre cada tick lógico (padrão: 15) */
   framesPerTick?: number;
+  /** Quantidade de agentes Vento instanciados na simulação (padrão: 3) */
+  windAgentCount?: number;
   className?: string;
 }
 
 export default function SimulationCanvas({
   onCellClick,
   framesPerTick,
+  windAgentCount,
   className,
 }: SimulationCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -59,6 +62,7 @@ export default function SimulationCanvas({
             onCellClickRef.current?.(coord, cell);
           },
           getFramesPerTick: () => framesPerTickRef.current ?? 15,
+          windAgentCount,
         }),
         containerRef.current,
       );
