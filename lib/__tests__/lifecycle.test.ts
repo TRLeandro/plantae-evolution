@@ -4,6 +4,8 @@ import {
   advanceGrid,
   TICKS_SEED_TO_SPROUT,
   TICKS_SPROUT_TO_MATURE,
+  TICKS_MATURE_TO_BLOOM,
+  TICKS_BLOOM_DURATION,
 } from '@/lib/lifecycle';
 import { createGrid, getCell, setCell } from '@/lib/grid';
 import type { Cell, Grid } from '@/types/simulation';
@@ -51,41 +53,84 @@ describe('lifecycle module', () => {
       expect(cell.tipoPlanta).toBe('bryophyte');
     });
 
-    it('planta madura permanece em mature indefinidamente (ciclo infinito / nunca morre)', () => {
+    it('planta madura transiciona para bloom após TICKS_MATURE_TO_BLOOM e retorna para mature após TICKS_BLOOM_DURATION', () => {
       const cell: Cell = { estado: 'mature', tipoPlanta: 'bryophyte', idade: 0 };
 
-      // Avança 100 ticks consecutivos
-      for (let i = 1; i <= 100; i++) {
+      // Avança até o tick anterior à transição
+      for (let i = 1; i < TICKS_MATURE_TO_BLOOM; i++) {
         advanceCell(cell);
         expect(cell.estado).toBe('mature');
         expect(cell.idade).toBe(i);
       }
-    });
 
-    it('aceita parâmetros customizados de ticks para testes ou cenários dinâmicos', () => {
-      const cell: Cell = { estado: 'seed', idade: 0 };
-      advanceCell(cell, 2, 3);
-      expect(cell.estado).toBe('seed');
-      expect(cell.idade).toBe(1);
-
-      advanceCell(cell, 2, 3);
-      expect(cell.estado).toBe('sprout');
+      // No tick de florescência, transiciona para bloom e zera a idade
+      advanceCell(cell);
+      expect(cell.estado).toBe('bloom');
       expect(cell.idade).toBe(0);
 
-      advanceCell(cell, 2, 3);
-      expect(cell.idade).toBe(1);
-      advanceCell(cell, 2, 3);
-      expect(cell.idade).toBe(2);
-      advanceCell(cell, 2, 3);
+      // Avança no estado bloom até a duração expirar
+      for (let i = 1; i < TICKS_BLOOM_DURATION; i++) {
+        advanceCell(cell);
+        expect(cell.estado).toBe('bloom');
+        expect(cell.idade).toBe(i);
+      }
+
+      // No término do bloom, retorna para mature
+      advanceCell(cell);
       expect(cell.estado).toBe('mature');
       expect(cell.idade).toBe(0);
     });
 
-    it('mantém estado bloom sem alterações de fase', () => {
-      const cell: Cell = { estado: 'bloom', tipoPlanta: 'bryophyte', idade: 5 };
-      advanceCell(cell);
+    it('aceita parâmetros customizados de ticks para testes ou cenários dinâmicos', () => {
+      const cell: Cell = { estado: 'seed', idade: 0 };
+      advanceCell(cell, 2, 3, 2, 2);
+      expect(cell.estado).toBe('seed');
+      expect(cell.idade).toBe(1);
+
+      advanceCell(cell, 2, 3, 2, 2);
+      expect(cell.estado).toBe('sprout');
+      expect(cell.idade).toBe(0);
+
+      advanceCell(cell, 2, 3, 2, 2);
+      expect(cell.idade).toBe(1);
+      advanceCell(cell, 2, 3, 2, 2);
+      expect(cell.idade).toBe(2);
+      advanceCell(cell, 2, 3, 2, 2);
+      expect(cell.estado).toBe('mature');
+      expect(cell.idade).toBe(0);
+
+      // mature -> bloom com parâmetro customizado (2 ticks)
+      advanceCell(cell, 2, 3, 2, 2);
+      expect(cell.estado).toBe('mature');
+      expect(cell.idade).toBe(1);
+      advanceCell(cell, 2, 3, 2, 2);
       expect(cell.estado).toBe('bloom');
-      expect(cell.idade).toBe(5);
+      expect(cell.idade).toBe(0);
+
+      // bloom -> mature com parâmetro customizado (2 ticks)
+      advanceCell(cell, 2, 3, 2, 2);
+      expect(cell.estado).toBe('bloom');
+      expect(cell.idade).toBe(1);
+      advanceCell(cell, 2, 3, 2, 2);
+      expect(cell.estado).toBe('mature');
+      expect(cell.idade).toBe(0);
+    });
+
+    it('planta madura alterna indefinidamente entre mature e bloom em ciclos múltiplos', () => {
+      const cell: Cell = { estado: 'mature', tipoPlanta: 'bryophyte', idade: 0 };
+
+      // Executa 3 ciclos completos mature -> bloom -> mature
+      for (let ciclo = 0; ciclo < 3; ciclo++) {
+        for (let i = 0; i < TICKS_MATURE_TO_BLOOM; i++) {
+          advanceCell(cell);
+        }
+        expect(cell.estado).toBe('bloom');
+
+        for (let i = 0; i < TICKS_BLOOM_DURATION; i++) {
+          advanceCell(cell);
+        }
+        expect(cell.estado).toBe('mature');
+      }
     });
   });
 
@@ -115,7 +160,7 @@ describe('lifecycle module', () => {
       expect(getCell(grid, { row: 1, col: 1 })?.idade).toBe(0);
     });
 
-    it('completa ciclo completo no grid semente → broto → madura em ~40 ticks', () => {
+    it('completa ciclo completo no grid semente → broto → madura e alterna ciclicamente', () => {
       setCell(grid, { row: 0, col: 0 }, { estado: 'seed', tipoPlanta: 'bryophyte', idade: 0 });
 
       // Avança 16 ticks (semente -> broto)
@@ -130,8 +175,14 @@ describe('lifecycle module', () => {
       }
       expect(getCell(grid, { row: 0, col: 0 })?.estado).toBe('mature');
 
-      // Mais 50 ticks não alteram o estado 'mature'
-      for (let i = 0; i < 50; i++) {
+      // Avança 20 ticks (mature -> bloom)
+      for (let i = 0; i < TICKS_MATURE_TO_BLOOM; i++) {
+        advanceGrid(grid);
+      }
+      expect(getCell(grid, { row: 0, col: 0 })?.estado).toBe('bloom');
+
+      // Avança 8 ticks (bloom -> mature)
+      for (let i = 0; i < TICKS_BLOOM_DURATION; i++) {
         advanceGrid(grid);
       }
       expect(getCell(grid, { row: 0, col: 0 })?.estado).toBe('mature');

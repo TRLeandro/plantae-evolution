@@ -18,7 +18,7 @@ import type { GridCoord, WindAgent } from '@/types/simulation';
 // ---------------------------------------------------------------------------
 
 /** Quantidade padrão de partículas/agentes de vento ativos simultaneamente */
-export const DEFAULT_WIND_AGENT_COUNT = 4;
+export const DEFAULT_WIND_AGENT_COUNT = 6;
 
 /** Velocidade escalar base do vento em pixels por frame (~48 px/s a 60 FPS) */
 export const WIND_BASE_SPEED = 0.8;

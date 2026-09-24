@@ -24,14 +24,26 @@ export const TICKS_SEED_TO_SPROUT = 16;
 export const TICKS_SPROUT_TO_MATURE = 24;
 
 /**
+ * Ticks que a planta madura aguarda antes de entrar em florescência/reprodução.
+ * Com 15 frames/tick a 60 FPS (~4 ticks/segundo), 20 ticks correspondem a ~5 segundos.
+ */
+export const TICKS_MATURE_TO_BLOOM = 20;
+
+/**
+ * Ticks que a planta permanece em fase de florescência antes de retornar a madura.
+ * Com 15 frames/tick a 60 FPS (~4 ticks/segundo), 8 ticks correspondem a ~2 segundos.
+ */
+export const TICKS_BLOOM_DURATION = 8;
+
+/**
  * Avança a idade e atualiza o estado ontogenético de uma célula individual.
  *
  * Ciclo de vida:
  * - 'empty': noop (célula desocupada não progride).
  * - 'seed': incrementa idade; ao atingir TICKS_SEED_TO_SPROUT, transiciona para 'sprout' e zera a idade.
  * - 'sprout': incrementa idade; ao atingir TICKS_SPROUT_TO_MATURE, transiciona para 'mature' e zera a idade.
- * - 'mature': ciclo infinito (a planta permanece madura indefinidamente sem morrer).
- * - 'bloom': mantido inalterado (tratado em etapas futuras de reprodução).
+ * - 'mature': incrementa idade; ao atingir TICKS_MATURE_TO_BLOOM, entra em florescência ('bloom') e zera a idade.
+ * - 'bloom': incrementa idade; ao atingir TICKS_BLOOM_DURATION, retorna a 'mature' e zera a idade.
  *
  * @param cell Célula a ser atualizada in-place.
  */
@@ -39,6 +51,8 @@ export function advanceCell(
   cell: Cell,
   ticksSeedToSprout: number = TICKS_SEED_TO_SPROUT,
   ticksSproutToMature: number = TICKS_SPROUT_TO_MATURE,
+  ticksMatureToBloom: number = TICKS_MATURE_TO_BLOOM,
+  ticksBloomDuration: number = TICKS_BLOOM_DURATION,
 ): void {
   switch (cell.estado) {
     case 'seed':
@@ -58,11 +72,23 @@ export function advanceCell(
       break;
 
     case 'mature':
-      // Ciclo contínuo / infinito: a planta nunca morre
+      // Ciclo contínuo / alternância reprodutiva: após maturidade, floresce ciclicamente
       cell.idade += 1;
+      if (cell.idade >= ticksMatureToBloom) {
+        cell.estado = 'bloom';
+        cell.idade = 0;
+      }
       break;
 
     case 'bloom':
+      // Florescência ativa: após o período reprodutivo, retorna a mature
+      cell.idade += 1;
+      if (cell.idade >= ticksBloomDuration) {
+        cell.estado = 'mature';
+        cell.idade = 0;
+      }
+      break;
+
     case 'empty':
     default:
       break;
@@ -79,10 +105,18 @@ export function advanceGrid(
   grid: Grid,
   ticksSeedToSprout: number = TICKS_SEED_TO_SPROUT,
   ticksSproutToMature: number = TICKS_SPROUT_TO_MATURE,
+  ticksMatureToBloom: number = TICKS_MATURE_TO_BLOOM,
+  ticksBloomDuration: number = TICKS_BLOOM_DURATION,
 ): void {
   forEachCell(grid, (cell) => {
     if (cell.estado !== 'empty') {
-      advanceCell(cell, ticksSeedToSprout, ticksSproutToMature);
+      advanceCell(
+        cell,
+        ticksSeedToSprout,
+        ticksSproutToMature,
+        ticksMatureToBloom,
+        ticksBloomDuration,
+      );
     }
   });
 }
