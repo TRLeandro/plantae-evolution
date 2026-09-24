@@ -30,13 +30,13 @@
 **Tarefas**
 - [x] **Estrutura de dados do grid:** matriz de células `{ estado, tipoPlanta, idade }`
 - [x] **Sistema de ticks lógicos:** controle de tempo desacoplado do `frameRate()` do p5
-- [ ] **Ciclo de vida da planta única:** semente → crescendo → madura (ciclo infinito, não morre)
+- [x] **Ciclo de vida da planta única:** semente → crescendo → madura (ciclo infinito, não morre)
 - [ ] **Agente polinizador único (ex: Vento 🍃):** estrutura de agente com posição e movimentação na matriz
 - [ ] **Mecanismo de propagação e colisão simplificado:**
   - Planta madura gera oportunidade de reprodução
   - Agente propaga semente para célula vazia no seu alcance
   - Colisão básica: se célula ocupada, encerra tentativa ou tenta célula vizinha
-- [ ] **Plantio manual:** clique no grid planta a semente inicial
+- [x] **Plantio manual:** clique no grid planta a semente inicial
 
 **Critério de aceite do MVP:** usuário clica para plantar uma semente; a planta cresce até a maturidade; o agente polinizador se move pela matriz e propaga sementes; novas plantas nascem e se espalham de forma autônoma pela matriz.
 

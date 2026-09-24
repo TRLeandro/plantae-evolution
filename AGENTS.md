@@ -39,7 +39,7 @@ A interface do usuário é estruturada em três áreas principais:
 - **Regra Crítica de Performance (p5.js ↔ React):**
   - O loop gráfico `draw()` do p5.js executa a ~60 FPS e **NÃO** deve disparar `setState` do React a cada frame.
   - As métricas ecológicas ($O_2$ e $CO_2$) são acumuladas internamente no motor de simulação e sincronizadas com o React com *throttle* (ex: 1 vez por segundo ou a cada N ticks lógicos).
-  - O controle de velocidade da simulação **NÃO** altera o `frameRate()` do p5. Em vez disso, altera o contador de **ticks lógicos** (quantidade de frames p5 decorridos entre cada atualização de estado da matriz), centralizado no módulo puro `lib/tick.ts` (`createTickState`, `advanceFrame`, `setSpeed`).
+  - O controle de velocidade da simulação **NÃO** altera o `frameRate()` do p5. Em vez disso, altera o contador de **ticks lógicos** (quantidade de frames p5 decorridos entre cada atualização de estado da matriz), centralizado no módulo puro `lib/tick.ts` (`createTickState`, `advanceFrame`, `setSpeed`). A cada tick lógico disparado, o motor de ontogenia puro `lib/lifecycle.ts` (`advanceGrid`) avança o ciclo de vida das células.
   - **Comunicação de Eventos (p5 ↔ React):** Eventos de interação (como `p.mousePressed`) e parâmetros reativos (como velocidade de ticks) são integrados através de opções em `createSketch({ onCellClick, getFramesPerTick })`. No componente React, esses callbacks e referências são estabilizados via `useRef` para garantir integridade sem reiniciar o ciclo de vida do sketch.
 
 ---
@@ -71,9 +71,10 @@ interface TickState {
 - **Pausa / Retomada:** Controlada via `setRunning(tickState, boolean)`.
 
 ### 4.3 Ontogenia e Ciclo de Vida da Planta
-1. **Semente (`seed`):** Ponto inicial após o plantio ou dispersão de um polinizador.
-2. **Broto (`sprout`):** Fase de crescimento ativo.
-3. **Madura (`mature`):** Planta plenamente desenvolvida. Realiza fotossíntese, gerando $O_2$ e capturando $CO_2$ a cada tick. Plantas maduras não morrem (ciclo contínuo).
+O ciclo ontogenético é gerenciado pelo módulo puro `lib/lifecycle.ts` através das funções `advanceCell()` e `advanceGrid()`, que atualizam o estado das células in-place a cada tick lógico:
+1. **Semente (`seed`):** Ponto inicial após o plantio (clique manual) ou dispersão de um polinizador. Permanece nesta fase por `TICKS_SEED_TO_SPROUT = 16` ticks (~4 segundos a ~4 ticks/s).
+2. **Broto (`sprout`):** Fase de crescimento ativo. Permanece por `TICKS_SPROUT_TO_MATURE = 24` ticks (~6 segundos a ~4 ticks/s). O tempo total acumulado desde o plantio até a maturidade é de **~10 segundos** (40 ticks).
+3. **Madura (`mature`):** Planta plenamente desenvolvida. Realiza fotossíntese, gerando $O_2$ e capturando $CO_2$ a cada tick. **Ciclo infinito:** plantas maduras não morrem, mantendo-se ativas e permanentes no ecossistema.
 4. **Reprodução / Florescência (`bloom`):** Alternância cíclica da planta madura. Disponibiliza pólen, sementes ou esporos para os agentes polinizadores dispersarem.
 
 ### 4.4 Espécies de Plantas
@@ -146,7 +147,7 @@ O projeto é dividido em **Fase 1 (MVP)** e **Fase 2 (Incrementos)**:
 
 - **Fase 1: MVP do Autômato Funcional**
   - **Sprint 0 (Concluído):** Setup Next.js + Tailwind + integração do p5.js em modo instância com grid clicável, detecção precisa de coordenadas (linha, coluna) e sem erros de SSR.
-  - **Sprint 1 (Próximo / Marco Fundamental):** Motor do MVP com espécie única + 1 agente polinizador (Vento) + ticks lógicos + ciclo de vida da planta + plantio por clique.
+  - **Sprint 1 (Em andamento / Marco Fundamental):** Motor do MVP com espécie única + 1 agente polinizador (Vento) + ticks lógicos + ciclo de vida da planta + plantio por clique. [Concluídos: ontogenia vegetal, permanência de maturidade, motor de ticks e plantio manual].
 - **Fase 2: Incrementos & Refinamento**
   - **Sprint 2:** Múltiplas espécies (Briófita, Gimnosperma, Angiosperma) e painel seletor.
   - **Sprint 3:** Agentes completos (Abelha, Pássaro) e regra de colisão com retries.
