@@ -28,8 +28,8 @@
 **Objetivo:** ciclo completo de vida e propagação autônoma com a máxima simplicidade (1 espécie + 1 agente polinizador).
 
 **Tarefas**
-- [ ] **Estrutura de dados do grid:** matriz de células `{ estado, tipoPlanta, idade }`
-- [ ] **Sistema de ticks lógicos:** controle de tempo desacoplado do `frameRate()` do p5
+- [x] **Estrutura de dados do grid:** matriz de células `{ estado, tipoPlanta, idade }`
+- [x] **Sistema de ticks lógicos:** controle de tempo desacoplado do `frameRate()` do p5
 - [ ] **Ciclo de vida da planta única:** semente → crescendo → madura (ciclo infinito, não morre)
 - [ ] **Agente polinizador único (ex: Vento 🍃):** estrutura de agente com posição e movimentação na matriz
 - [ ] **Mecanismo de propagação e colisão simplificado:**

@@ -39,8 +39,8 @@ A interface do usuário é estruturada em três áreas principais:
 - **Regra Crítica de Performance (p5.js ↔ React):**
   - O loop gráfico `draw()` do p5.js executa a ~60 FPS e **NÃO** deve disparar `setState` do React a cada frame.
   - As métricas ecológicas ($O_2$ e $CO_2$) são acumuladas internamente no motor de simulação e sincronizadas com o React com *throttle* (ex: 1 vez por segundo ou a cada N ticks lógicos).
-  - O controle de velocidade da simulação **NÃO** altera o `frameRate()` do p5. Em vez disso, altera o contador de **ticks lógicos** (quantidade de frames p5 decorridos entre cada atualização de estado da matriz).
-  - **Comunicação de Eventos (p5 ↔ React):** Eventos de interação (como `p.mousePressed`) são capturados pelo p5 e emitidos para o React através de callbacks parametrizados em `createSketch({ onCellClick })`. No componente React, esses callbacks são estabilizados via `useRef` para garantir integridade sem reiniciar o ciclo de vida do sketch.
+  - O controle de velocidade da simulação **NÃO** altera o `frameRate()` do p5. Em vez disso, altera o contador de **ticks lógicos** (quantidade de frames p5 decorridos entre cada atualização de estado da matriz), centralizado no módulo puro `lib/tick.ts` (`createTickState`, `advanceFrame`, `setSpeed`).
+  - **Comunicação de Eventos (p5 ↔ React):** Eventos de interação (como `p.mousePressed`) e parâmetros reativos (como velocidade de ticks) são integrados através de opções em `createSketch({ onCellClick, getFramesPerTick })`. No componente React, esses callbacks e referências são estabilizados via `useRef` para garantir integridade sem reiniciar o ciclo de vida do sketch.
 
 ---
 
@@ -56,26 +56,40 @@ interface Cell {
 }
 ```
 
-### 4.2 Ontogenia e Ciclo de Vida da Planta
+### 4.2 Sistema de Ticks Lógicos (Motor Temporal)
+O ritmo de evolução do ecossistema é desacoplado da taxa de quadros gráficos (~60 FPS) através de um contador de quadros acumulador mantido em `lib/tick.ts` e tipado via `types/simulation.ts`:
+```typescript
+interface TickState {
+  frameAccumulator: number;
+  framesPerTick: number; // Padrão: 15 frames (~4 ticks/segundo a 60 FPS)
+  totalTicks: number;
+  running: boolean;
+}
+```
+- **Acumulador & Disparo:** No loop `p.draw()`, `advanceFrame(tickState)` incrementa o acumulador a cada frame. Quando `frameAccumulator >= framesPerTick`, o acumulador é zerado, `totalTicks` é incrementado e o tick lógico é executado.
+- **Velocidade Dinâmica:** Modificada via `setSpeed(tickState, framesPerTick)` sem redefinir o sketch ou zerar o acumulador.
+- **Pausa / Retomada:** Controlada via `setRunning(tickState, boolean)`.
+
+### 4.3 Ontogenia e Ciclo de Vida da Planta
 1. **Semente (`seed`):** Ponto inicial após o plantio ou dispersão de um polinizador.
 2. **Broto (`sprout`):** Fase de crescimento ativo.
 3. **Madura (`mature`):** Planta plenamente desenvolvida. Realiza fotossíntese, gerando $O_2$ e capturando $CO_2$ a cada tick. Plantas maduras não morrem (ciclo contínuo).
 4. **Reprodução / Florescência (`bloom`):** Alternância cíclica da planta madura. Disponibiliza pólen, sementes ou esporos para os agentes polinizadores dispersarem.
 
-### 4.3 Espécies de Plantas
+### 4.4 Espécies de Plantas
 | Espécie | Tipo de Reprodução | Fase Madura (Cor) | Fase Reprodutiva (Cor) | Agente Principal |
 |---|---|---|---|---|
 | **Briófita** (Musgos) | Esporos | `#15803D` (Verde Floresta) | `#BEF264` (Esporo Lima) | Vento 🍃 |
 | **Gimnosperma** (Conífera/Pinho) | Sementes / Pinhas | `#0D9488` (Teal) | `#FBBF24` (Pinha Âmbar) | Pássaro 🐦 |
 | **Angiosperma** (Flora com flor/fruto) | Flores e Frutos | `#059669` (Esmeralda) | `#F43F5E` (Magenta) | Abelha 🐝 |
 
-### 4.4 Agentes Polinizadores & Dispersão
+### 4.5 Agentes Polinizadores & Dispersão
 Agentes móveis que navegam pela matriz:
 - **Vento 🍃 (`#67E8F9`):** Movimentação difusa/ondulatória, espalha esporos e sementes leves por alcance médio.
 - **Abelha 🐝 (`#FACC15`):** Movimentação focada, visita flores e dispersa pólen para células **adjacentes** (curto alcance).
 - **Pássaro 🐦 (`#FB923C`):** Movimentação rápida e ampla, transporta frutos e sementes para células **distantes** na matriz (longo alcance).
 
-### 4.5 Regras de Colisão e Propagação (Sprint 3)
+### 4.6 Regras de Colisão e Propagação (Sprint 3)
 Quando um agente tenta disseminar uma espécie para uma célula-alvo:
 1. **Célula Vazia (`empty`):** Propagação bem-sucedida! Célula torna-se `seed`.
 2. **Célula em Reprodução (`bloom`):** Sucesso silencioso (interação polinizadora concluída; agente encerra ação ali).
@@ -150,5 +164,5 @@ Ao desenvolver ou refatorar código neste repositório:
 1. **Preserve a separação p5 ↔ React:** Mantenha a lógica matemática do grid e dos agentes desacoplada da camada visual de componentes React.
 2. **Evite conflitos de SSR:** Qualquer uso de `window`, `document` ou instâncias do `p5` deve acontecer exclusivamente no ciclo de vida do cliente (`useEffect` ou componentes com `'use client'` e carregamento dinâmico sem SSR).
 3. **Respeite o Design System:** Utilize sempre as variáveis de cor e tokens de `lib/colors.ts` e `globals.css`. Nunca invente cores fora da paleta sem justificativa explícita.
-4. **Código em TypeScript:** Tipar explicitamente as entidades da simulação (`Cell`, `Agent`, `SpeciesConfig`, `SimulationMetrics`).
+4. **Código em TypeScript:** Tipar explicitamente as entidades da simulação (`Cell`, `TickState`, `Agent`, `SpeciesConfig`, `SimulationMetrics`).
 5. **Progressão Gradual pelas Sprints:** Não introduza complexidade da Fase 2 antes de consolidar os critérios de aceite do MVP (Sprint 0 e Sprint 1).
