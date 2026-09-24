@@ -14,7 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Plantae Evolution 🌱",
-  description: "Simulação de autômato celular interativo — ecossistema vegetal e impacto ambiental",
+  description:
+    "Simulação de autômato celular interativo para o ciclo de vida e dispersão biológica de espécies vegetais.",
 };
 
 export default function RootLayout({

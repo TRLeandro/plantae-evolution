@@ -14,12 +14,12 @@
 **Objetivo:** validar a integração p5.js ↔ Next.js com canvas interativo básico.
 
 **Tarefas**
-- [ ] Inicializar projeto Next.js + Tailwind CSS
-- [ ] Integrar p5.js em **modo instância** via `react-p5-wrapper` (ou import dinâmico client-side)
-- [ ] Renderizar grid estático no canvas
-- [ ] Capturar clique em uma célula (identificar coordenadas da matriz)
+- [x] Inicializar projeto Next.js + Tailwind CSS
+- [x] Integrar p5.js em **modo instância** via `react-p5-wrapper` (ou import dinâmico client-side)
+- [x] Renderizar grid estático no canvas
+- [x] Capturar clique em uma célula (identificar coordenadas da matriz)
 
-**Critério de aceite:** p5 roda dentro do componente React sem erros de hidratação/SSR e exibe o grid clicável.
+**Critério de aceite:** p5 roda dentro do componente React sem erros de hidratação/SSR e exibe o grid clicável com registro preciso de coordenadas.
 
 ---
 
@@ -28,15 +28,15 @@
 **Objetivo:** ciclo completo de vida e propagação autônoma com a máxima simplicidade (1 espécie + 1 agente polinizador).
 
 **Tarefas**
-- [ ] **Estrutura de dados do grid:** matriz de células `{ estado, tipoPlanta, idade }`
-- [ ] **Sistema de ticks lógicos:** controle de tempo desacoplado do `frameRate()` do p5
-- [ ] **Ciclo de vida da planta única:** semente → crescendo → madura (ciclo infinito, não morre)
+- [x] **Estrutura de dados do grid:** matriz de células `{ estado, tipoPlanta, idade }`
+- [x] **Sistema de ticks lógicos:** controle de tempo desacoplado do `frameRate()` do p5
+- [x] **Ciclo de vida da planta única:** semente → crescendo → madura (ciclo infinito, não morre)
 - [ ] **Agente polinizador único (ex: Vento 🍃):** estrutura de agente com posição e movimentação na matriz
 - [ ] **Mecanismo de propagação e colisão simplificado:**
   - Planta madura gera oportunidade de reprodução
   - Agente propaga semente para célula vazia no seu alcance
   - Colisão básica: se célula ocupada, encerra tentativa ou tenta célula vizinha
-- [ ] **Plantio manual:** clique no grid planta a semente inicial
+- [x] **Plantio manual:** clique no grid planta a semente inicial
 
 **Critério de aceite do MVP:** usuário clica para plantar uma semente; a planta cresce até a maturidade; o agente polinizador se move pela matriz e propaga sementes; novas plantas nascem e se espalham de forma autônoma pela matriz.
 

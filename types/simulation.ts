@@ -25,6 +25,9 @@ export interface Cell {
   idade: number;
 }
 
+/** Representação canônica da matriz bidimensional do autômato celular */
+export type Grid = Cell[][];
+
 /** Coordenada de uma célula na grade */
 export interface GridCoord {
   col: number;
@@ -43,3 +46,41 @@ export interface CellClickEvent {
   coord: GridCoord;
   cell: Cell;
 }
+
+/** Estado do sistema de ticks lógicos da simulação */
+export interface TickState {
+  /** Contador de frames acumulados desde o último tick lógico */
+  frameAccumulator: number;
+  /** Quantidade de frames p5 entre cada tick lógico (ex: 15 = ~4 ticks/seg a 60 FPS) */
+  framesPerTick: number;
+  /** Total de ticks lógicos disparados desde o início da simulação */
+  totalTicks: number;
+  /** Se a simulação está em execução (não pausada) */
+  running: boolean;
+}
+
+/** Tipos de agentes polinizadores */
+export type AgentKind = 'wind' | 'bee' | 'bird';
+
+/**
+ * Representa um agente Vento na simulação.
+ * Opera em coordenadas contínuas de pixels para movimentação fluida a ~60 FPS.
+ * Referência: AGENTS.md § 4.5 (Agentes Polinizadores & Dispersão)
+ */
+export interface WindAgent {
+  /** Posição horizontal contínua em pixels */
+  x: number;
+  /** Posição vertical contínua em pixels */
+  y: number;
+  /** Vetor de velocidade horizontal (pixels por frame) */
+  vx: number;
+  /** Vetor de velocidade vertical (pixels por frame) */
+  vy: number;
+  /** Deslocamento de fase para oscilação ondulatória individual */
+  waveOffset: number;
+  /** Velocidade escalar base */
+  baseSpeed: number;
+  /** Ângulo base de direção da brisa (em radianos) */
+  angle: number;
+}
+
