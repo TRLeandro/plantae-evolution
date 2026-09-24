@@ -46,3 +46,16 @@ export interface CellClickEvent {
   coord: GridCoord;
   cell: Cell;
 }
+
+/** Estado do sistema de ticks lógicos da simulação */
+export interface TickState {
+  /** Contador de frames acumulados desde o último tick lógico */
+  frameAccumulator: number;
+  /** Quantidade de frames p5 entre cada tick lógico (ex: 15 = ~4 ticks/seg a 60 FPS) */
+  framesPerTick: number;
+  /** Total de ticks lógicos disparados desde o início da simulação */
+  totalTicks: number;
+  /** Se a simulação está em execução (não pausada) */
+  running: boolean;
+}
+
