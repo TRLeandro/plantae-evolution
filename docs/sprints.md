@@ -14,12 +14,12 @@
 **Objetivo:** validar a integração p5.js ↔ Next.js com canvas interativo básico.
 
 **Tarefas**
-- [ ] Inicializar projeto Next.js + Tailwind CSS
-- [ ] Integrar p5.js em **modo instância** via `react-p5-wrapper` (ou import dinâmico client-side)
-- [ ] Renderizar grid estático no canvas
-- [ ] Capturar clique em uma célula (identificar coordenadas da matriz)
+- [x] Inicializar projeto Next.js + Tailwind CSS
+- [x] Integrar p5.js em **modo instância** via `react-p5-wrapper` (ou import dinâmico client-side)
+- [x] Renderizar grid estático no canvas
+- [x] Capturar clique em uma célula (identificar coordenadas da matriz)
 
-**Critério de aceite:** p5 roda dentro do componente React sem erros de hidratação/SSR e exibe o grid clicável.
+**Critério de aceite:** p5 roda dentro do componente React sem erros de hidratação/SSR e exibe o grid clicável com registro preciso de coordenadas.
 
 ---
 
