@@ -31,6 +31,7 @@ import {
   advanceWindAgent,
   DEFAULT_WIND_AGENT_COUNT,
 } from '@/lib/wind';
+import { tryWindDispersal } from '@/lib/pollination';
 import type {
   Cell,
   CellState,
@@ -113,6 +114,12 @@ export function createSketch(options?: SketchOptions) {
       const shouldTick = advanceFrame(tickState);
       if (shouldTick) {
         advanceGrid(grid);
+
+        // Dispersão abiótica: o vento transporta sementes ao sobrevoar plantas maduras/em florescência
+        for (const agent of windAgents) {
+          tryWindDispersal(grid, agent, { cellSize: CELL_SIZE });
+        }
+
         options?.onTick?.(tickState.totalTicks);
       }
 

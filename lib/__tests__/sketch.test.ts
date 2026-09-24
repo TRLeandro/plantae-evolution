@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createSketch } from '@/lib/sketch';
+import { DEFAULT_WIND_AGENT_COUNT } from '@/lib/wind';
 import type p5 from 'p5';
 
 function createMockP5() {
@@ -126,9 +127,9 @@ describe('sketch module - logical tick decoupling', () => {
       p.setup();
       p.draw();
 
-      // Cada agente de vento (3 por padrão) renderiza 4 elipses (halo + principal + 2 tails) = 12 chamadas
+      // Cada agente de vento renderiza 4 elipses (halo + principal + 2 tails)
       expect(p.ellipse).toHaveBeenCalled();
-      expect(p.ellipse).toHaveBeenCalledTimes(12);
+      expect(p.ellipse).toHaveBeenCalledTimes(DEFAULT_WIND_AGENT_COUNT * 4);
     });
 
     it('respeita quantidade customizada de agentes de vento', () => {
