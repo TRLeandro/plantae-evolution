@@ -40,13 +40,14 @@ A interface do usuário é estruturada em três áreas principais:
   - O loop gráfico `draw()` do p5.js executa a ~60 FPS e **NÃO** deve disparar `setState` do React a cada frame.
   - As métricas ecológicas ($O_2$ e $CO_2$) são acumuladas internamente no motor de simulação e sincronizadas com o React com *throttle* (ex: 1 vez por segundo ou a cada N ticks lógicos).
   - O controle de velocidade da simulação **NÃO** altera o `frameRate()` do p5. Em vez disso, altera o contador de **ticks lógicos** (quantidade de frames p5 decorridos entre cada atualização de estado da matriz).
+  - **Comunicação de Eventos (p5 ↔ React):** Eventos de interação (como `p.mousePressed`) são capturados pelo p5 e emitidos para o React através de callbacks parametrizados em `createSketch({ onCellClick })`. No componente React, esses callbacks são estabilizados via `useRef` para garantir integridade sem reiniciar o ciclo de vida do sketch.
 
 ---
 
 ## 4. Modelo de Domínio da Simulação
 
 ### 4.1 Estrutura de Dados da Matriz (Grid)
-O terreno é uma grade bidimensional onde cada célula possui o formato:
+O terreno é uma grade bidimensional (32 colunas × 24 linhas com células de 20px, totalizando canvas de 640×480px) centralizada em `lib/grid.ts` e com tipagens canônicas em `types/simulation.ts`. O mapeamento de coordenadas (pixel X, Y → col, row) é feito via `mouseToGridCoord()`. Cada célula possui o formato:
 ```typescript
 interface Cell {
   estado: 'empty' | 'seed' | 'sprout' | 'mature' | 'bloom';
@@ -130,8 +131,8 @@ import { PALETTE, hexToRgb } from '@/lib/colors';
 O projeto é dividido em **Fase 1 (MVP)** e **Fase 2 (Incrementos)**:
 
 - **Fase 1: MVP do Autômato Funcional**
-  - **Sprint 0 (Atual):** Setup Next.js + Tailwind + integração do p5.js em modo instância com grid clicável sem erros de SSR.
-  - **Sprint 1 (Marco Fundamental):** Motor do MVP com espécie única + 1 agente polinizador (Vento) + ticks lógicos + ciclo de vida da planta + plantio por clique.
+  - **Sprint 0 (Concluído):** Setup Next.js + Tailwind + integração do p5.js em modo instância com grid clicável, detecção precisa de coordenadas (linha, coluna) e sem erros de SSR.
+  - **Sprint 1 (Próximo / Marco Fundamental):** Motor do MVP com espécie única + 1 agente polinizador (Vento) + ticks lógicos + ciclo de vida da planta + plantio por clique.
 - **Fase 2: Incrementos & Refinamento**
   - **Sprint 2:** Múltiplas espécies (Briófita, Gimnosperma, Angiosperma) e painel seletor.
   - **Sprint 3:** Agentes completos (Abelha, Pássaro) e regra de colisão com retries.
