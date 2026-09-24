@@ -20,8 +20,11 @@ import {
   CANVAS_HEIGHT,
   createGrid,
   mouseToGridCoord,
+  getCell,
+  updateCell,
+  isCellEmpty,
 } from '@/lib/grid';
-import type { Cell, CellState, GridCoord } from '@/types/simulation';
+import type { Cell, CellState, Grid, GridCoord } from '@/types/simulation';
 
 export { CANVAS_WIDTH, CANVAS_HEIGHT };
 
@@ -50,7 +53,7 @@ export interface SketchOptions {
 export function createSketch(options?: SketchOptions) {
   return (p: p5) => {
     // Matriz de células interna do motor de simulação (fora do ciclo de render do React)
-    const grid: Cell[][] = createGrid();
+    const grid: Grid = createGrid();
     let hoverCoord: GridCoord | null = null;
 
     // ----- setup -----
@@ -113,12 +116,12 @@ export function createSketch(options?: SketchOptions) {
       if (!coord) return false;
 
       lastInteractionTime = now;
-      const cell = grid[coord.row][coord.col];
+      const cell = getCell(grid, coord);
+      if (!cell) return false;
 
       // Plantio inicial de validação (Sprint 0): célula vazia → semente
-      if (cell.estado === 'empty') {
-        cell.estado = 'seed';
-        cell.idade = 0;
+      if (isCellEmpty(cell)) {
+        updateCell(grid, coord, { estado: 'seed', idade: 0 });
       }
 
       // Notifica o callback com cópia da célula e coordenadas
