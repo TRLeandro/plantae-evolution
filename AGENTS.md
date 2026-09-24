@@ -39,8 +39,8 @@ A interface do usuário é estruturada em três áreas principais:
 - **Regra Crítica de Performance (p5.js ↔ React):**
   - O loop gráfico `draw()` do p5.js executa a ~60 FPS e **NÃO** deve disparar `setState` do React a cada frame.
   - As métricas ecológicas ($O_2$ e $CO_2$) são acumuladas internamente no motor de simulação e sincronizadas com o React com *throttle* (ex: 1 vez por segundo ou a cada N ticks lógicos).
-  - O controle de velocidade da simulação **NÃO** altera o `frameRate()` do p5. Em vez disso, altera o contador de **ticks lógicos** (quantidade de frames p5 decorridos entre cada atualização de estado da matriz), centralizado no módulo puro `lib/tick.ts` (`createTickState`, `advanceFrame`, `setSpeed`). A cada tick lógico disparado, o motor de ontogenia puro `lib/lifecycle.ts` (`advanceGrid`) avança o ciclo de vida das células.
-  - **Comunicação de Eventos (p5 ↔ React):** Eventos de interação (como `p.mousePressed`) e parâmetros reativos (como velocidade de ticks) são integrados através de opções em `createSketch({ onCellClick, getFramesPerTick })`. No componente React, esses callbacks e referências são estabilizados via `useRef` para garantir integridade sem reiniciar o ciclo de vida do sketch.
+  - O controle de velocidade da simulação **NÃO** altera o `frameRate()` do p5. Em vez disso, altera o contador de **ticks lógicos** (quantidade de frames p5 decorridos entre cada atualização de estado da matriz), centralizado no módulo puro `lib/tick.ts` (`createTickState`, `advanceFrame`, `setSpeed`). A cada tick lógico disparado, o motor de ontogenia puro `lib/lifecycle.ts` (`advanceGrid`) avança o ciclo de vida das células. Enquanto isso, agentes atmosféricos como o Vento (`lib/wind.ts`) deslocam-se de forma contínua e suave a cada quadro visual (~60 FPS) sobre o grid.
+  - **Comunicação de Eventos (p5 ↔ React):** Eventos de interação (como `p.mousePressed`) e parâmetros reativos (como velocidade de ticks) são integrados através de opções em `createSketch({ onCellClick, getFramesPerTick, windAgentCount })`. No componente React, esses callbacks e referências são estabilizados via `useRef` para garantir integridade sem reiniciar o ciclo de vida do sketch.
 
 ---
 
@@ -87,6 +87,11 @@ O ciclo ontogenético é gerenciado pelo módulo puro `lib/lifecycle.ts` atravé
 ### 4.5 Agentes Polinizadores & Dispersão
 Agentes móveis que navegam pela matriz:
 - **Vento 🍃 (`#67E8F9`):** Movimentação difusa/ondulatória, espalha esporos e sementes leves por alcance médio.
+  - **Estrutura & Tipagem:** `WindAgent` em `types/simulation.ts` (posições contínuas em pixels `x, y`, vetor de velocidade `vx, vy`, `waveOffset`, `baseSpeed`, `angle`).
+  - **Cinemática Pura (`lib/wind.ts`):** Modelo de "Brisa Ondulatória" combinando velocidade horizontal base (`WIND_BASE_SPEED = 0.8`), perturbação angular contínua/turbulência (`WIND_TURBULENCE_STRENGTH = 0.012`, limite `WIND_MAX_ANGLE = π/4`) e oscilação senoidal transversal vertical (`WIND_WAVE_AMPLITUDE = 0.7`, `WIND_WAVE_FREQUENCY = 0.035`).
+  - **Comportamento Periódico & Limites:** *Wrap-around* com margem (`WIND_MARGIN = 20px`), reintroduzindo a partícula pela borda oposta com nova altitude e brisa refrescada.
+  - **População Padrão:** `DEFAULT_WIND_AGENT_COUNT = 3`, provendo 2 a 3 partículas ativas navegando fluidamente a ~60 FPS sobre a grade.
+  - **Renderização Visual (`lib/sketch.ts`):** Partículas translúcidas ciano etéreo com halo difuso e cauda direcional calculada pelo vetor de velocidade.
 - **Abelha 🐝 (`#FACC15`):** Movimentação focada, visita flores e dispersa pólen para células **adjacentes** (curto alcance).
 - **Pássaro 🐦 (`#FB923C`):** Movimentação rápida e ampla, transporta frutos e sementes para células **distantes** na matriz (longo alcance).
 
@@ -147,7 +152,7 @@ O projeto é dividido em **Fase 1 (MVP)** e **Fase 2 (Incrementos)**:
 
 - **Fase 1: MVP do Autômato Funcional**
   - **Sprint 0 (Concluído):** Setup Next.js + Tailwind + integração do p5.js em modo instância com grid clicável, detecção precisa de coordenadas (linha, coluna) e sem erros de SSR.
-  - **Sprint 1 (Em andamento / Marco Fundamental):** Motor do MVP com espécie única + 1 agente polinizador (Vento) + ticks lógicos + ciclo de vida da planta + plantio por clique. [Concluídos: ontogenia vegetal, permanência de maturidade, motor de ticks e plantio manual].
+  - **Sprint 1 (Concluído / Marco Fundamental):** Motor do MVP com espécie única + 1 agente polinizador (Vento) + ticks lógicos + ciclo de vida da planta + plantio por clique. [Concluídos: ontogenia vegetal, permanência de maturidade, motor de ticks, plantio manual e cinemática/renderização autônoma do agente Vento sobre o grid].
 - **Fase 2: Incrementos & Refinamento**
   - **Sprint 2:** Múltiplas espécies (Briófita, Gimnosperma, Angiosperma) e painel seletor.
   - **Sprint 3:** Agentes completos (Abelha, Pássaro) e regra de colisão com retries.
