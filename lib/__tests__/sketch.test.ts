@@ -15,6 +15,7 @@ function createMockP5() {
     fill: vi.fn(),
     rect: vi.fn(),
     line: vi.fn(),
+    ellipse: vi.fn(),
     mouseX: 0,
     mouseY: 0,
     mouseMoved: () => {},
@@ -114,5 +115,32 @@ describe('sketch module - logical tick decoupling', () => {
     p.draw(); // frame 2 -> tick 2 disparado
     expect(onTick).toHaveBeenCalledTimes(2);
     expect(onTick).toHaveBeenLastCalledWith(2);
+  });
+
+  describe('wind agents rendering', () => {
+    it('renderiza partículas de vento sobre o grid no draw()', () => {
+      const p = createMockP5();
+      const sketch = createSketch();
+      sketch(p);
+
+      p.setup();
+      p.draw();
+
+      // Cada agente de vento (3 por padrão) renderiza 4 elipses (halo + principal + 2 tails) = 12 chamadas
+      expect(p.ellipse).toHaveBeenCalled();
+      expect(p.ellipse).toHaveBeenCalledTimes(12);
+    });
+
+    it('respeita quantidade customizada de agentes de vento', () => {
+      const p = createMockP5();
+      const sketch = createSketch({ windAgentCount: 2 });
+      sketch(p);
+
+      p.setup();
+      p.draw();
+
+      // 2 agentes * 4 elipses = 8 chamadas
+      expect(p.ellipse).toHaveBeenCalledTimes(8);
+    });
   });
 });
