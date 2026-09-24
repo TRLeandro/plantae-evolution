@@ -25,6 +25,7 @@ import {
   isCellEmpty,
 } from '@/lib/grid';
 import { createTickState, advanceFrame, setSpeed } from '@/lib/tick';
+import { advanceGrid } from '@/lib/lifecycle';
 import type { Cell, CellState, Grid, GridCoord, TickState } from '@/types/simulation';
 
 export { CANVAS_WIDTH, CANVAS_HEIGHT };
@@ -87,8 +88,8 @@ export function createSketch(options?: SketchOptions) {
       // 1. Processamento do tick lógico (desacoplado dos 60 FPS do p5)
       const shouldTick = advanceFrame(tickState);
       if (shouldTick) {
+        advanceGrid(grid);
         options?.onTick?.(tickState.totalTicks);
-        // Ponto de extensão para avanço da simulação (ontogenia, propagação, agentes)
       }
 
       // 2. Renderização gráfica (executa a cada frame visual)
@@ -146,9 +147,9 @@ export function createSketch(options?: SketchOptions) {
       const cell = getCell(grid, coord);
       if (!cell) return false;
 
-      // Plantio inicial de validação (Sprint 0): célula vazia → semente
+      // Plantio inicial do MVP (Sprint 1): célula vazia → semente (briófita)
       if (isCellEmpty(cell)) {
-        updateCell(grid, coord, { estado: 'seed', idade: 0 });
+        updateCell(grid, coord, { estado: 'seed', tipoPlanta: 'bryophyte', idade: 0 });
       }
 
       // Notifica o callback com cópia da célula e coordenadas
