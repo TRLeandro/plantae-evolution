@@ -26,7 +26,19 @@ import {
 } from '@/lib/grid';
 import { createTickState, advanceFrame, setSpeed } from '@/lib/tick';
 import { advanceGrid } from '@/lib/lifecycle';
-import type { Cell, CellState, Grid, GridCoord, TickState } from '@/types/simulation';
+import {
+  createWindAgents,
+  advanceWindAgent,
+  DEFAULT_WIND_AGENT_COUNT,
+} from '@/lib/wind';
+import type {
+  Cell,
+  CellState,
+  Grid,
+  GridCoord,
+  TickState,
+  WindAgent,
+} from '@/types/simulation';
 
 export { CANVAS_WIDTH, CANVAS_HEIGHT };
 
@@ -34,6 +46,7 @@ export { CANVAS_WIDTH, CANVAS_HEIGHT };
 const BG_RGB = hexToRgb(PALETTE.ui.background);
 const LINES_RGB = hexToRgb(PALETTE.grid.lines);
 const HOVER_RGB = hexToRgb(PALETTE.grid.hover);
+const WIND_RGB = hexToRgb(PALETTE.agents.wind.color);
 
 const STATE_COLOR: Record<CellState, readonly [number, number, number]> = {
   empty: hexToRgb(PALETTE.grid.empty),
@@ -52,6 +65,8 @@ export interface SketchOptions {
   getFramesPerTick?: () => number;
   /** Callback opcional disparado em cada tick lógico */
   onTick?: (totalTicks: number) => void;
+  /** Quantidade de agentes Vento instanciados na simulação (padrão: 3) */
+  windAgentCount?: number;
 }
 
 /**
@@ -63,6 +78,15 @@ export function createSketch(options?: SketchOptions) {
     // Matriz de células interna do motor de simulação (fora do ciclo de render do React)
     const grid: Grid = createGrid();
     let hoverCoord: GridCoord | null = null;
+
+    // Agentes de dispersão atmosférica (Vento)
+    const windCount = options?.windAgentCount ?? DEFAULT_WIND_AGENT_COUNT;
+    const windAgents: WindAgent[] = createWindAgents(
+      windCount,
+      CANVAS_WIDTH,
+      CANVAS_HEIGHT,
+    );
+    let localFrameCount = 0;
 
     // Estado do motor de ticks desacoplado da taxa de quadros visual (p5 draw)
     const initialFrames = options?.getFramesPerTick?.() ?? options?.framesPerTick;
@@ -92,10 +116,18 @@ export function createSketch(options?: SketchOptions) {
         options?.onTick?.(tickState.totalTicks);
       }
 
-      // 2. Renderização gráfica (executa a cada frame visual)
+      // 2. Movimentação contínua dos agentes Vento (deslocamento fluido a cada frame)
+      if (tickState.running) {
+        localFrameCount++;
+        for (const agent of windAgents) {
+          advanceWindAgent(agent, localFrameCount, CANVAS_WIDTH, CANVAS_HEIGHT);
+        }
+      }
+
+      // 3. Renderização gráfica (executa a cada frame visual)
       p.background(...BG_RGB);
 
-      // 1. Renderiza o preenchimento de cada célula
+      // Preenchimento de cada célula
       p.noStroke();
       for (let row = 0; row < GRID_ROWS; row++) {
         for (let col = 0; col < GRID_COLS; col++) {
@@ -115,7 +147,7 @@ export function createSketch(options?: SketchOptions) {
         }
       }
 
-      // 2. Renderiza linhas da grade por cima
+      // Linhas da grade por cima
       p.stroke(...LINES_RGB);
       p.strokeWeight(1);
 
@@ -129,6 +161,30 @@ export function createSketch(options?: SketchOptions) {
       for (let row = 0; row <= GRID_ROWS; row++) {
         const y = row * CELL_SIZE;
         p.line(0, y, CANVAS_WIDTH, y);
+      }
+
+      // 4. Renderização visual dos agentes Vento sobre o grid (efeito partículas etéreas com cauda)
+      p.noStroke();
+      for (const agent of windAgents) {
+        const speed = Math.hypot(agent.vx, agent.vy) || 1;
+        const dirX = agent.vx / speed;
+        const dirY = agent.vy / speed;
+
+        // Halo suave difuso
+        p.fill(WIND_RGB[0], WIND_RGB[1], WIND_RGB[2], 40);
+        p.ellipse(agent.x, agent.y, 14, 14);
+
+        // Partícula principal do vento
+        p.fill(WIND_RGB[0], WIND_RGB[1], WIND_RGB[2], 210);
+        p.ellipse(agent.x, agent.y, 7, 7);
+
+        // Rastro secundário (trail 1)
+        p.fill(WIND_RGB[0], WIND_RGB[1], WIND_RGB[2], 130);
+        p.ellipse(agent.x - dirX * 6, agent.y - dirY * 6, 4.5, 4.5);
+
+        // Rastro terciário (trail 2)
+        p.fill(WIND_RGB[0], WIND_RGB[1], WIND_RGB[2], 65);
+        p.ellipse(agent.x - dirX * 12, agent.y - dirY * 12, 2.5, 2.5);
       }
     };
 

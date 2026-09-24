@@ -59,3 +59,28 @@ export interface TickState {
   running: boolean;
 }
 
+/** Tipos de agentes polinizadores */
+export type AgentKind = 'wind' | 'bee' | 'bird';
+
+/**
+ * Representa um agente Vento na simulação.
+ * Opera em coordenadas contínuas de pixels para movimentação fluida a ~60 FPS.
+ * Referência: AGENTS.md § 4.5 (Agentes Polinizadores & Dispersão)
+ */
+export interface WindAgent {
+  /** Posição horizontal contínua em pixels */
+  x: number;
+  /** Posição vertical contínua em pixels */
+  y: number;
+  /** Vetor de velocidade horizontal (pixels por frame) */
+  vx: number;
+  /** Vetor de velocidade vertical (pixels por frame) */
+  vy: number;
+  /** Deslocamento de fase para oscilação ondulatória individual */
+  waveOffset: number;
+  /** Velocidade escalar base */
+  baseSpeed: number;
+  /** Ângulo base de direção da brisa (em radianos) */
+  angle: number;
+}
+
