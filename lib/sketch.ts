@@ -24,7 +24,8 @@ import {
   updateCell,
   isCellEmpty,
 } from '@/lib/grid';
-import type { Cell, CellState, Grid, GridCoord } from '@/types/simulation';
+import { createTickState, advanceFrame, setSpeed } from '@/lib/tick';
+import type { Cell, CellState, Grid, GridCoord, TickState } from '@/types/simulation';
 
 export { CANVAS_WIDTH, CANVAS_HEIGHT };
 
@@ -44,6 +45,12 @@ const STATE_COLOR: Record<CellState, readonly [number, number, number]> = {
 export interface SketchOptions {
   /** Callback disparado ao clicar em uma célula válida */
   onCellClick?: (coord: GridCoord, cell: Cell) => void;
+  /** Quantidade estática de frames p5 entre cada tick lógico (padrão: 15) */
+  framesPerTick?: number;
+  /** Provedor dinâmico de cadência de frames por tick (para sliders sem recriar o sketch) */
+  getFramesPerTick?: () => number;
+  /** Callback opcional disparado em cada tick lógico */
+  onTick?: (totalTicks: number) => void;
 }
 
 /**
@@ -56,6 +63,10 @@ export function createSketch(options?: SketchOptions) {
     const grid: Grid = createGrid();
     let hoverCoord: GridCoord | null = null;
 
+    // Estado do motor de ticks desacoplado da taxa de quadros visual (p5 draw)
+    const initialFrames = options?.getFramesPerTick?.() ?? options?.framesPerTick;
+    const tickState: TickState = createTickState(initialFrames);
+
     // ----- setup -----
     p.setup = () => {
       const canvas = p.createCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -65,6 +76,22 @@ export function createSketch(options?: SketchOptions) {
 
     // ----- draw -----
     p.draw = () => {
+      // 0. Sincronização dinâmica de velocidade sem reinicializar o sketch
+      if (options?.getFramesPerTick) {
+        const dynamicSpeed = options.getFramesPerTick();
+        if (dynamicSpeed && dynamicSpeed !== tickState.framesPerTick) {
+          setSpeed(tickState, dynamicSpeed);
+        }
+      }
+
+      // 1. Processamento do tick lógico (desacoplado dos 60 FPS do p5)
+      const shouldTick = advanceFrame(tickState);
+      if (shouldTick) {
+        options?.onTick?.(tickState.totalTicks);
+        // Ponto de extensão para avanço da simulação (ontogenia, propagação, agentes)
+      }
+
+      // 2. Renderização gráfica (executa a cada frame visual)
       p.background(...BG_RGB);
 
       // 1. Renderiza o preenchimento de cada célula

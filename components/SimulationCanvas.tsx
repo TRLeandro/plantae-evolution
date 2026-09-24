@@ -17,16 +17,27 @@ import type { Cell, GridCoord } from '@/types/simulation';
 export interface SimulationCanvasProps {
   /** Callback disparado ao clicar em uma célula do grid */
   onCellClick?: (coord: GridCoord, cell: Cell) => void;
+  /** Quantidade de frames p5 entre cada tick lógico (padrão: 15) */
+  framesPerTick?: number;
   className?: string;
 }
 
-export default function SimulationCanvas({ onCellClick, className }: SimulationCanvasProps) {
+export default function SimulationCanvas({
+  onCellClick,
+  framesPerTick,
+  className,
+}: SimulationCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const onCellClickRef = useRef(onCellClick);
+  const framesPerTickRef = useRef(framesPerTick);
 
   useEffect(() => {
     onCellClickRef.current = onCellClick;
   }, [onCellClick]);
+
+  useEffect(() => {
+    framesPerTickRef.current = framesPerTick;
+  }, [framesPerTick]);
 
   useEffect(() => {
     let cancelled = false;
@@ -47,6 +58,7 @@ export default function SimulationCanvas({ onCellClick, className }: SimulationC
           onCellClick: (coord, cell) => {
             onCellClickRef.current?.(coord, cell);
           },
+          getFramesPerTick: () => framesPerTickRef.current ?? 15,
         }),
         containerRef.current,
       );
