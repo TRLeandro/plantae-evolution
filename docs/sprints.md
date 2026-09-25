@@ -46,33 +46,35 @@
 
 ---
 
-## Sprint 2 — Múltiplas Espécies
+## Sprint 2 — Catálogo de Espécies & Dispersão por Autômato Celular
 
-**Objetivo:** expandir de 1 para até 3 espécies com características e visual distintos.
+**Objetivo:** expandir de 1 para 4 espécies evolutivas com características, ritmos e regras de dispersão distintas: Briófitas (autômato celular puro sem agentes), Pteridófitas (somente vento), Gimnospermas (vento e pássaro) e Angiospermas (todos os agentes).
 
 **Tarefas**
-- [ ] Modelagem de dados por espécie (tempo de crescimento, tipo de reprodução: esporo / semente / flor-fruto)
-- [ ] Painel de seleção de espécie antes do plantio
-- [ ] Renderização visual distinta por espécie no grid
+- [ ] Modelagem de dados por espécie (tempo de crescimento, tipo de reprodução: esporo / semente / flor-fruto, matriz de agentes compatíveis)
+- [ ] Implementar expansão autônoma das briófitas por autômato celular (colonização direta de casas adjacentes durante floração)
+- [ ] Painel seletor de espécies antes do plantio (Briófita, Pteridófita, Gimnosperma, Angiosperma)
+- [ ] Renderização visual distinta por espécie no grid com cores madura e reprodutiva
 
-**Critério de aceite:** o usuário pode alternar entre espécies antes de plantar e ver comportamentos visuais e tempos de crescimento distintos.
+**Critério de aceite:** o usuário pode alternar entre as 4 espécies antes de plantar; briófitas se expandem sozinhas para células vizinhas como autômato puro, enquanto pteridófitas, gimnospermas e angiospermas dependem dos seus respectivos agentes polinizadores.
 
 ---
 
-## Sprint 3 — Agentes Polinizadores Completos & Regra de Colisão Avançada
+## Sprint 3 — Agentes Polinizadores Completos & Especialização de Dispersão
 
-**Objetivo:** adicionar os agentes restantes e a regra completa de colisão e retries.
+**Objetivo:** adicionar os agentes restantes (Pássaro e Abelha) e consolidar as regras de colisão e especialização por espécie.
 
 **Tarefas**
-- [ ] Implementar agente **Abelha 🐝** (dispersão de curto alcance para esporos/sementes)
-- [ ] Implementar agente **Pássaros 🐦** (dispersão de longo alcance para frutos)
+- [ ] Implementar agente **Pássaro 🐦** (dispersão de frutos/sementes para Gimnospermas e Angiospermas)
+- [ ] Implementar agente **Abelha 🐝** (polinização focada de flores para Angiospermas)
+- [ ] Filtragem de dispersão por espécie (Vento atua em Pteridófitas, Gimnospermas e Angiospermas; Pássaro em Gimnospermas e Angiospermas; Abelha em Angiospermas)
 - [ ] **Regra completa de colisão de propagação** (para os 3 agentes):
   - Célula vazia → propaga normalmente
   - Célula ocupada em reprodução → sucesso silencioso (agente encerra ali)
   - Célula ocupada em crescimento → bloqueio real, tenta mais 2 células
   - 3 tentativas falhas → sem propagação no tick, agente segue movimento
 
-**Critério de aceite:** os 3 agentes coexistem na simulação com alcances distintos e comportamento determinístico de colisão.
+**Critério de aceite:** os 3 agentes coexistem na simulação com alcances distintos e comportamento seletivo conforme a matriz de dispersão de cada espécie.
 
 ---
 
