@@ -30,7 +30,7 @@ Guia de contexto, arquitetura, regras de domínio e convenções técnicas para 
 
 ### 3.1 Layout de 3 Painéis
 A interface do usuário é estruturada em três áreas principais:
-1. **Menu Lateral Esquerdo (`ConfigPanel`):** Seleção da espécie ativa (1 a 3 espécies), slider de velocidade (ticks lógicos), botões de controle (iniciar, pausar, reiniciar, finalizar).
+1. **Menu Lateral Esquerdo (`ConfigPanel`):** Seleção da espécie ativa (1 a 4 espécies), slider de velocidade (ticks lógicos), botões de controle (iniciar, pausar, reiniciar, finalizar).
 2. **Área Central (`SimulationCanvas`):** Canvas interativo do autômato celular (renderização do solo, plantas, agentes voadores, partículas e clique para plantio).
 3. **Menu Lateral Direito (`ImpactPanel`):** Métricas ecológicas planetárias (acumulado de $O_2$ gerado, $CO_2$ capturado e termômetro de regeneração climática).
 
@@ -51,7 +51,7 @@ O terreno é uma grade bidimensional (32 colunas × 24 linhas com células de 20
 ```typescript
 interface Cell {
   estado: 'empty' | 'seed' | 'sprout' | 'mature' | 'bloom';
-  tipoPlanta?: 'bryophyte' | 'gymnosperm' | 'angiosperm';
+  tipoPlanta?: 'bryophyte' | 'pteridophyte' | 'gymnosperm' | 'angiosperm';
   idade: number; // Ticks de vida na fase atual
 }
 ```
@@ -77,27 +77,38 @@ O ciclo ontogenético é gerenciado pelo módulo puro `lib/lifecycle.ts` atravé
 3. **Madura (`mature`):** Planta plenamente desenvolvida. Realiza fotossíntese, gerando $O_2$ e capturando $CO_2$ a cada tick. Após `TICKS_MATURE_TO_BLOOM = 20` ticks (~5 segundos a ~4 ticks/s), entra em florescência/reprodução (`bloom`). **Ciclo infinito:** plantas maduras não morrem, alternando ciclicamente entre maturidade e florescência.
 4. **Reprodução / Florescência (`bloom`):** Alternância cíclica da planta madura com duração de `TICKS_BLOOM_DURATION = 8` ticks (~2 segundos a ~4 ticks/s). Disponibiliza pólen, sementes ou esporos para os agentes polinizadores dispersarem; ao término do período, retorna ao estado `mature`.
 
-### 4.4 Espécies de Plantas
-| Espécie | Tipo de Reprodução | Fase Madura (Cor) | Fase Reprodutiva (Cor) | Agente Principal |
-|---|---|---|---|---|
-| **Briófita** (Musgos) | Esporos | `#15803D` (Verde Floresta) | `#BEF264` (Esporo Lima) | Vento 🍃 |
-| **Gimnosperma** (Conífera/Pinho) | Sementes / Pinhas | `#0D9488` (Teal) | `#FBBF24` (Pinha Âmbar) | Pássaro 🐦 |
-| **Angiosperma** (Flora com flor/fruto) | Flores e Frutos | `#059669` (Esmeralda) | `#F43F5E` (Magenta) | Abelha 🐝 |
+### 4.4 Espécies de Plantas e Matriz de Dispersão
+O ecossistema é modelado sobre a sucessão evolutiva vegetal, com regras de dispersão diferenciadas para cada grupo botânico:
 
-### 4.5 Agentes Polinizadores & Dispersão
-Agentes móveis que navegam pela matriz:
-- **Vento 🍃 (`#67E8F9`):** Movimentação difusa/ondulatória, espalha esporos e sementes leves por alcance médio.
+| Espécie | Tipo de Reprodução | Fase Madura (Cor) | Fase Reprodutiva (Cor) | Mecanismo / Agentes de Dispersão |
+|---|---|---|---|---|
+| **Briófita** (Musgos) | Esporos | `#15803D` (Verde Floresta) | `#BEF264` (Esporo Lima) | **Nenhum agente móvel** — Autômato Celular puro (espalha-se diretamente para casas vizinhas adjacentes com o tempo) 🌱 |
+| **Pteridófita** (Samambaias) | Esporos / Soros | `#047857` (Verde Musgo) | `#34D399` (Menta Soros) | **Somente Vento 🍃** |
+| **Gimnosperma** (Conífera/Pinho) | Sementes / Pinhas | `#0D9488` (Teal) | `#FBBF24` (Pinha Âmbar) | **Vento 🍃 e Pássaro 🐦** |
+| **Angiosperma** (Flora com flor/fruto) | Flores e Frutos | `#059669` (Esmeralda) | `#F43F5E` (Magenta) | **Todos os agentes: Vento 🍃, Pássaro 🐦 e Abelha 🐝** |
+
+### 4.5 Mecanismos de Propagação & Agentes Polinizadores
+
+#### 4.5.1 Propagação por Autômato Celular Direto (Briófitas)
+As briófitas comportam-se como um autômato celular clássico:
+- Não dependem de nenhum agente polinizador ou partícula externa para dispersão.
+- Durante a fase reprodutiva (`bloom`), a cada tick lógico a célula tenta colonizar uma célula vazia aleatória na sua vizinhança de Moore (até 8 casas adjacentes), depositando uma nova semente de briófita.
+- O vento e outros agentes voadores sobrevoando briófitas **não** colhem nem disseminam suas sementes.
+
+#### 4.5.2 Agentes Polinizadores Móveis
+Agentes móveis que navegam pela matriz sobrevoando plantas maduras ou em floração e dispersando suas sementes:
+- **Vento 🍃 (`#67E8F9`):** Movimentação difusa/ondulatória, espalha esporos e sementes leves por alcance médio. Dispersa **Pteridófitas**, **Gimnospermas** e **Angiospermas**.
   - **Estrutura & Tipagem:** `WindAgent` em `types/simulation.ts` (posições contínuas em pixels `x, y`, vetor de velocidade `vx, vy`, `waveOffset`, `baseSpeed`, `angle`).
   - **Cinemática Pura (`lib/wind.ts`):** Modelo de "Brisa Ondulatória" combinando velocidade horizontal base (`WIND_BASE_SPEED = 0.8`), perturbação angular contínua/turbulência (`WIND_TURBULENCE_STRENGTH = 0.012`, limite `WIND_MAX_ANGLE = π/4`) e oscilação senoidal transversal vertical (`WIND_WAVE_AMPLITUDE = 0.7`, `WIND_WAVE_FREQUENCY = 0.035`).
   - **Comportamento Periódico & Limites:** *Wrap-around* com margem (`WIND_MARGIN = 20px`), reintroduzindo a partícula pela borda oposta com nova altitude e brisa refrescada.
   - **População Padrão:** `DEFAULT_WIND_AGENT_COUNT = 6`, provendo partículas ativas navegando fluidamente a ~60 FPS sobre a grade.
   - **Renderização Visual (`lib/sketch.ts`):** Partículas translúcidas ciano etéreo com halo difuso e cauda direcional calculada pelo vetor de velocidade.
-  - **Motor de Dispersão (`lib/pollination.ts`):** Executa `tryWindDispersal()` a cada tick lógico (~4 ticks/s) no loop do sketch. Ao sobrevoar uma planta em `mature` ou `bloom`, tenta disseminar semente herdando a espécie para uma célula vizinha (vizinhança de Moore).
-- **Abelha 🐝 (`#FACC15`):** Movimentação focada, visita flores e dispersa pólen para células **adjacentes** (curto alcance).
-- **Pássaro 🐦 (`#FB923C`):** Movimentação rápida e ampla, transporta frutos e sementes para células **distantes** na matriz (longo alcance).
+  - **Motor de Dispersão (`lib/pollination.ts`):** Executa `tryWindDispersal()` a cada tick lógico (~4 ticks/s) no loop do sketch. Ao sobrevoar uma planta em `mature` ou `bloom` de espécie compatível (Pteridófita, Gimnosperma, Angiosperma), tenta disseminar semente herdando a espécie para uma célula vizinha (vizinhança de Moore).
+- **Pássaro 🐦 (`#FB923C`):** Movimentação rápida e ampla, transporta pinhas e frutos para células distantes na matriz (longo alcance). Dispersa **Gimnospermas** e **Angiospermas**.
+- **Abelha 🐝 (`#FACC15`):** Movimentação focada, visita flores e dispersa pólen para células adjacentes (curto alcance). Dispersa **Angiospermas**.
 
 ### 4.6 Regras de Colisão e Propagação (Implementadas em `lib/pollination.ts`)
-Quando um agente tenta disseminar uma espécie para uma célula-alvo:
+Quando um agente (ou a propagação do autômato) tenta disseminar uma espécie para uma célula-alvo:
 1. **Célula Vazia (`empty`):** Propagação bem-sucedida! Célula torna-se `seed` herdando `tipoPlanta` da célula-mãe.
 2. **Célula em Reprodução (`bloom`):** Sucesso silencioso (interação polinizadora concluída; agente encerra ação ali sem plantar nova semente).
 3. **Célula Ocupada em Crescimento (`seed`, `sprout` ou `mature`):** Bloqueio real. O agente tenta até mais 2 células vizinhas/no alcance (`MAX_DISPERSAL_RETRIES = 3`).
@@ -155,7 +166,7 @@ O projeto é dividido em **Fase 1 (MVP)** e **Fase 2 (Incrementos)**:
   - **Sprint 0 (Concluído):** Setup Next.js + Tailwind + integração do p5.js em modo instância com grid clicável, detecção precisa de coordenadas (linha, coluna) e sem erros de SSR.
   - **Sprint 1 (Concluído / Marco Fundamental):** Motor do MVP com espécie única + 1 agente polinizador (Vento) + ticks lógicos + ciclo de vida da planta + plantio por clique. [Concluídos: ontogenia vegetal, alternância reprodutiva `mature ↔ bloom`, motor de ticks desacoplado, plantio manual por clique/toque, cinemática da brisa, e dispersão abiótica autônoma de sementes com regras de colisão e retries via `lib/pollination.ts`].
 - **Fase 2: Incrementos & Refinamento**
-  - **Sprint 2:** Múltiplas espécies (Briófita, Gimnosperma, Angiosperma) e painel seletor.
+  - **Sprint 2:** Múltiplas espécies (Briófita, Pteridófita, Gimnosperma, Angiosperma), expansão por autômato celular e painel seletor.
   - **Sprint 3:** Agentes polinizadores bióticos completos (Abelha, Pássaro) e especialização por espécie.
   - **Sprint 4:** Painel de Impacto Ambiental (O2/CO2) com sincronização throttled estável.
   - **Sprint 5:** Interface completa de 3 colunas responsiva (desktop minimizável / mobile com tabs).

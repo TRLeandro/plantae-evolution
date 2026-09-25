@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { tryWindDispersal, MAX_DISPERSAL_RETRIES } from '@/lib/pollination';
+import {
+  tryWindDispersal,
+  spreadBryophytes,
+  MAX_DISPERSAL_RETRIES,
+} from '@/lib/pollination';
 import { createGrid, getCell, setCell, countCellsByState } from '@/lib/grid';
 import { createWindAgent } from '@/lib/wind';
 import type { Grid, WindAgent } from '@/types/simulation';
@@ -20,7 +24,7 @@ describe('pollination module — tryWindDispersal', () => {
     });
   }
 
-  describe('condições da célula-fonte', () => {
+  describe('condições da célula-fonte e seletividade por espécie', () => {
     it('retorna false quando o agente está fora dos limites do grid', () => {
       const agentOutOfBounds = createWindAgent(100, 100, { x: -15, y: -15 });
       const result = tryWindDispersal(grid, agentOutOfBounds, { cellSize: CELL_SIZE });
@@ -36,8 +40,17 @@ describe('pollination module — tryWindDispersal', () => {
       expect(countCellsByState(grid, 'seed')).toBe(0);
     });
 
+    it('retorna false para briófitas mesmo maduras (vento não dispersa briófitas)', () => {
+      setCell(grid, { row: 2, col: 2 }, { estado: 'mature', tipoPlanta: 'bryophyte', idade: 5 });
+      const agent = makeAgentAt(2, 2);
+
+      const result = tryWindDispersal(grid, agent, { cellSize: CELL_SIZE });
+      expect(result).toBe(false);
+      expect(countCellsByState(grid, 'seed')).toBe(0);
+    });
+
     it('retorna false quando a planta sob o agente é apenas uma semente (seed)', () => {
-      setCell(grid, { row: 2, col: 2 }, { estado: 'seed', tipoPlanta: 'bryophyte', idade: 5 });
+      setCell(grid, { row: 2, col: 2 }, { estado: 'seed', tipoPlanta: 'pteridophyte', idade: 5 });
       const agent = makeAgentAt(2, 2);
 
       const result = tryWindDispersal(grid, agent, { cellSize: CELL_SIZE });
@@ -46,7 +59,7 @@ describe('pollination module — tryWindDispersal', () => {
     });
 
     it('retorna false quando a planta sob o agente é um broto (sprout)', () => {
-      setCell(grid, { row: 2, col: 2 }, { estado: 'sprout', tipoPlanta: 'bryophyte', idade: 10 });
+      setCell(grid, { row: 2, col: 2 }, { estado: 'sprout', tipoPlanta: 'pteridophyte', idade: 10 });
       const agent = makeAgentAt(2, 2);
 
       const result = tryWindDispersal(grid, agent, { cellSize: CELL_SIZE });
@@ -55,9 +68,9 @@ describe('pollination module — tryWindDispersal', () => {
     });
   });
 
-  describe('dispersão bem-sucedida a partir de mature e bloom', () => {
-    it('dissemina semente para célula vizinha vazia a partir de planta madura', () => {
-      setCell(grid, { row: 2, col: 2 }, { estado: 'mature', tipoPlanta: 'bryophyte', idade: 5 });
+  describe('dispersão bem-sucedida para espécies compatíveis com vento', () => {
+    it('dissemina pteridófita para célula vizinha vazia a partir de planta madura', () => {
+      setCell(grid, { row: 2, col: 2 }, { estado: 'mature', tipoPlanta: 'pteridophyte', idade: 5 });
       const agent = makeAgentAt(2, 2);
 
       const result = tryWindDispersal(grid, agent, { cellSize: CELL_SIZE });
@@ -72,7 +85,7 @@ describe('pollination module — tryWindDispersal', () => {
           const cell = getCell(grid, { row: r, col: c });
           if (cell?.estado === 'seed') {
             newSeedFound = true;
-            expect(cell.tipoPlanta).toBe('bryophyte');
+            expect(cell.tipoPlanta).toBe('pteridophyte');
             expect(cell.idade).toBe(0);
           }
         }
@@ -80,7 +93,7 @@ describe('pollination module — tryWindDispersal', () => {
       expect(newSeedFound).toBe(true);
     });
 
-    it('dissemina semente para célula vizinha vazia a partir de planta em floração (bloom)', () => {
+    it('dissemina angiosperma para célula vizinha vazia a partir de florescência (bloom)', () => {
       setCell(grid, { row: 2, col: 2 }, { estado: 'bloom', tipoPlanta: 'angiosperm', idade: 2 });
       const agent = makeAgentAt(2, 2);
 
@@ -88,7 +101,6 @@ describe('pollination module — tryWindDispersal', () => {
       expect(result).toBe(true);
       expect(countCellsByState(grid, 'seed')).toBe(1);
 
-      // Garante que herdou 'angiosperm'
       let seedPlantType: string | undefined;
       for (let r = 0; r < 5; r++) {
         for (let c = 0; c < 5; c++) {
@@ -121,8 +133,7 @@ describe('pollination module — tryWindDispersal', () => {
 
   describe('regras de colisão e tentativas (AGENTS.md § 4.6)', () => {
     it('encerra ação sem plantar quando a célula-alvo sorteada está em bloom (sucesso silencioso)', () => {
-      // Configura grid onde TODOS os vizinhos estão em bloom
-      setCell(grid, { row: 2, col: 2 }, { estado: 'mature', tipoPlanta: 'bryophyte', idade: 5 });
+      setCell(grid, { row: 2, col: 2 }, { estado: 'mature', tipoPlanta: 'pteridophyte', idade: 5 });
 
       for (let dy = -1; dy <= 1; dy++) {
         for (let dx = -1; dx <= 1; dx++) {
@@ -140,15 +151,13 @@ describe('pollination module — tryWindDispersal', () => {
     });
 
     it('tenta célula vizinha adjacente quando a primeira está ocupada por planta em crescimento', () => {
-      // Configura planta madura em (0, 0) — canto com apenas 3 vizinhos: (0,1), (1,0), (1,1)
-      setCell(grid, { row: 0, col: 0 }, { estado: 'mature', tipoPlanta: 'bryophyte', idade: 5 });
+      setCell(grid, { row: 0, col: 0 }, { estado: 'mature', tipoPlanta: 'gymnosperm', idade: 5 });
 
       // Ocupa (0,1) e (1,0) com plantas já existentes
-      setCell(grid, { row: 0, col: 1 }, { estado: 'mature', tipoPlanta: 'bryophyte', idade: 10 });
-      setCell(grid, { row: 1, col: 0 }, { estado: 'sprout', tipoPlanta: 'bryophyte', idade: 8 });
+      setCell(grid, { row: 0, col: 1 }, { estado: 'mature', tipoPlanta: 'gymnosperm', idade: 10 });
+      setCell(grid, { row: 1, col: 0 }, { estado: 'sprout', tipoPlanta: 'gymnosperm', idade: 8 });
 
       // Deixa apenas (1,1) vazia
-      // Como há apenas 3 vizinhos e o retry tenta até 3 vezes, ele deve encontrar (1,1)
       const agent = makeAgentAt(0, 0);
       const result = tryWindDispersal(grid, agent, { cellSize: CELL_SIZE });
 
@@ -157,9 +166,9 @@ describe('pollination module — tryWindDispersal', () => {
     });
 
     it(`falha e não planta após ${MAX_DISPERSAL_RETRIES} tentativas quando todas as vizinhas estão ocupadas`, () => {
-      setCell(grid, { row: 2, col: 2 }, { estado: 'mature', tipoPlanta: 'bryophyte', idade: 5 });
+      setCell(grid, { row: 2, col: 2 }, { estado: 'mature', tipoPlanta: 'pteridophyte', idade: 5 });
 
-      // Preenche todos os 8 vizinhos com mature/sprout
+      // Preenche todos os 8 vizinhos com mature
       for (let dy = -1; dy <= 1; dy++) {
         for (let dx = -1; dx <= 1; dx++) {
           if (dx === 0 && dy === 0) continue;
@@ -177,10 +186,9 @@ describe('pollination module — tryWindDispersal', () => {
 
   describe('determinismo com RNG injetado', () => {
     it('comporta-se de maneira reproduzível quando fornecido RNG customizado', () => {
-      setCell(grid, { row: 2, col: 2 }, { estado: 'mature', tipoPlanta: 'bryophyte', idade: 5 });
+      setCell(grid, { row: 2, col: 2 }, { estado: 'mature', tipoPlanta: 'pteridophyte', idade: 5 });
       const agent = makeAgentAt(2, 2);
 
-      // RNG que sempre retorna 0
       const deterministicRng = () => 0;
 
       const result = tryWindDispersal(grid, agent, {
@@ -191,5 +199,68 @@ describe('pollination module — tryWindDispersal', () => {
       expect(result).toBe(true);
       expect(countCellsByState(grid, 'seed')).toBe(1);
     });
+  });
+});
+
+describe('pollination module — spreadBryophytes (Autômato Celular Puro)', () => {
+  let grid: Grid;
+
+  beforeEach(() => {
+    grid = createGrid(5, 5);
+  });
+
+  it('coloniza célula vizinha vazia quando a briófita está em bloom', () => {
+    setCell(grid, { row: 2, col: 2 }, { estado: 'bloom', tipoPlanta: 'bryophyte', idade: 1 });
+
+    const planted = spreadBryophytes(grid, { spreadProbability: 1 });
+    expect(planted).toBe(1);
+    expect(countCellsByState(grid, 'seed')).toBe(1);
+
+    // Confirma que a nova semente é briófita com idade 0 em uma casa vizinha adjacente
+    let seedNeighbor = false;
+    for (let r = 1; r <= 3; r++) {
+      for (let c = 1; c <= 3; c++) {
+        if (r === 2 && c === 2) continue;
+        const cell = getCell(grid, { row: r, col: c });
+        if (cell?.estado === 'seed') {
+          seedNeighbor = true;
+          expect(cell.tipoPlanta).toBe('bryophyte');
+          expect(cell.idade).toBe(0);
+        }
+      }
+    }
+    expect(seedNeighbor).toBe(true);
+  });
+
+  it('não coloniza se a briófita estiver apenas madura (mature), somente durante bloom', () => {
+    setCell(grid, { row: 2, col: 2 }, { estado: 'mature', tipoPlanta: 'bryophyte', idade: 10 });
+
+    const planted = spreadBryophytes(grid, { spreadProbability: 1 });
+    expect(planted).toBe(0);
+    expect(countCellsByState(grid, 'seed')).toBe(0);
+  });
+
+  it('não coloniza se a planta em bloom for de outra espécie (ex: pteridófita)', () => {
+    setCell(grid, { row: 2, col: 2 }, { estado: 'bloom', tipoPlanta: 'pteridophyte', idade: 1 });
+
+    const planted = spreadBryophytes(grid, { spreadProbability: 1 });
+    expect(planted).toBe(0);
+    expect(countCellsByState(grid, 'seed')).toBe(0);
+  });
+
+  it('não planta sobre células vizinhas ocupadas quando todos os vizinhos estão tomados', () => {
+    setCell(grid, { row: 2, col: 2 }, { estado: 'bloom', tipoPlanta: 'bryophyte', idade: 1 });
+
+    // Ocupa todos os vizinhos
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dx === 0 && dy === 0) continue;
+        setCell(grid, { row: 2 + dy, col: 2 + dx }, { estado: 'mature', idade: 5 });
+      }
+    }
+
+    const planted = spreadBryophytes(grid, { spreadProbability: 1 });
+    expect(planted).toBe(0);
+    expect(countCellsByState(grid, 'seed')).toBe(0);
   });
 });

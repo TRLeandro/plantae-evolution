@@ -12,11 +12,13 @@
 
 import { useEffect, useRef } from 'react';
 import type p5 from 'p5';
-import type { Cell, GridCoord } from '@/types/simulation';
+import type { Cell, GridCoord, PlantType } from '@/types/simulation';
 
 export interface SimulationCanvasProps {
   /** Callback disparado ao clicar em uma célula do grid */
   onCellClick?: (coord: GridCoord, cell: Cell) => void;
+  /** Espécie vegetal atualmente ativa para plantio manual */
+  activeSpecies?: PlantType;
   /** Quantidade de frames p5 entre cada tick lógico (padrão: 15) */
   framesPerTick?: number;
   /** Quantidade de agentes Vento instanciados na simulação (padrão: 3) */
@@ -26,17 +28,23 @@ export interface SimulationCanvasProps {
 
 export default function SimulationCanvas({
   onCellClick,
+  activeSpecies = 'bryophyte',
   framesPerTick,
   windAgentCount,
   className,
 }: SimulationCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const onCellClickRef = useRef(onCellClick);
+  const activeSpeciesRef = useRef(activeSpecies);
   const framesPerTickRef = useRef(framesPerTick);
 
   useEffect(() => {
     onCellClickRef.current = onCellClick;
   }, [onCellClick]);
+
+  useEffect(() => {
+    activeSpeciesRef.current = activeSpecies;
+  }, [activeSpecies]);
 
   useEffect(() => {
     framesPerTickRef.current = framesPerTick;
@@ -62,6 +70,7 @@ export default function SimulationCanvas({
             onCellClickRef.current?.(coord, cell);
           },
           getFramesPerTick: () => framesPerTickRef.current ?? 15,
+          getActiveSpecies: () => activeSpeciesRef.current,
           windAgentCount,
         }),
         containerRef.current,

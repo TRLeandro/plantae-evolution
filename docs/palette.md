@@ -48,11 +48,12 @@ Conforme a planta se desenvolve em ticks lógicos (Sprints 1 e 2):
 ### 1.4 Diferenciação de Espécies (Fase 2)
 Quando múltiplas espécies coexistirem na simulação:
 
-| Espécie | Fase Madura | Fase Reprodutiva | Agente Principal |
+| Espécie | Fase Madura | Fase Reprodutiva | Vetor / Agentes de Dispersão |
 |---|---|---|---|
-| **Briófita** (Musgos) | `#15803D` *(Verde Floresta)* | `#BEF264` *(Esporo Lima)* | Vento 🍃 |
-| **Gimnosperma** (Arbusto/Pinho) | `#0D9488` *(Teal)* | `#FBBF24` *(Pinha Âmbar)* | Pássaro 🐦 |
-| **Angiosperma** (Flora) | `#059669` *(Esmeralda)* | `#F43F5E` *(Magenta)* | Abelha 🐝 |
+| **Briófita** (Musgos) | `#15803D` *(Verde Floresta)* | `#BEF264` *(Esporo Lima)* | Nenhum — Autômato Celular Direto 🌱 |
+| **Pteridófita** (Samambaias) | `#047857` *(Verde Musgo)* | `#34D399` *(Menta Soros)* | Somente Vento 🍃 |
+| **Gimnosperma** (Arbusto/Pinho) | `#0D9488` *(Teal)* | `#FBBF24` *(Pinha Âmbar)* | Vento 🍃 e Pássaro 🐦 |
+| **Angiosperma** (Flora / Flores) | `#059669` *(Esmeralda)* | `#F43F5E` *(Magenta)* | Vento 🍃, Pássaro 🐦 e Abelha 🐝 |
 
 ---
 

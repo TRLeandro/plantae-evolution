@@ -10,6 +10,7 @@
 import type { Grid, WindAgent, PlantType } from '@/types/simulation';
 import { CELL_SIZE, getCell, getNeighbors, isValidCoord, setCell } from '@/lib/grid';
 import { getWindGridCoord } from '@/lib/wind';
+import { canDisperseWithAgent } from '@/lib/species';
 
 /**
  * Quantidade máxima de tentativas consecutivas de plantio
@@ -18,6 +19,9 @@ import { getWindGridCoord } from '@/lib/wind';
  */
 export const MAX_DISPERSAL_RETRIES = 3;
 
+/** Probabilidade padrão de colonização por tick de uma briófita em florescência */
+export const DEFAULT_BRYOPHYTE_SPREAD_CHANCE = 0.25;
+
 export interface DispersalOptions {
   /** Tamanho da célula em pixels (padrão: CELL_SIZE = 20) */
   cellSize?: number;
@@ -25,18 +29,26 @@ export interface DispersalOptions {
   rng?: () => number;
 }
 
+export interface BryophyteSpreadOptions {
+  /** Gerador de números pseudoaleatórios (padrão: Math.random) para testes determinísticos */
+  rng?: () => number;
+  /** Probabilidade de tentativa de colonização por tick para cada célula em floração (padrão: 0.25) */
+  spreadProbability?: number;
+}
+
 /**
  * Tenta realizar a dispersão de sementes a partir do sobrevoo de um agente Vento.
  *
- * Regras ontogenéticas e de colisão (AGENTS.md § 4.6):
+ * Regras ontogenéticas e de colisão (AGENTS.md § 4.5 e § 4.6):
  * 1. Mapeia a posição do agente Vento para uma coordenada do grid.
  * 2. Verifica se a célula-fonte possui uma planta apta à reprodução ('mature' ou 'bloom').
- * 3. Se apta, sorteia células vizinhas adjacentes (vizinhança de Moore) para disseminação.
- * 4. Para cada tentativa (até MAX_DISPERSAL_RETRIES):
+ * 3. Valida se a espécie da planta aceita dispersão por vento (Briófitas NÃO aceitam agentes móveis).
+ * 4. Se apta, sorteia células vizinhas adjacentes (vizinhança de Moore) para disseminação.
+ * 5. Para cada tentativa (até MAX_DISPERSAL_RETRIES):
  *    - Célula Vazia ('empty'): Sucesso! Semente plantada herdando o tipo da espécie. Retorna true.
  *    - Célula em Florescência ('bloom'): Sucesso silencioso da interação polinizadora. O agente encerra a ação. Retorna false.
  *    - Célula Ocupada ('seed', 'sprout', 'mature'): Bloqueio real. Tenta a próxima vizinha.
- * 5. Se esgotar as tentativas sem sucesso, nenhuma semente é plantada. Retorna false.
+ * 6. Se esgotar as tentativas sem sucesso, nenhuma semente é plantada. Retorna false.
  *
  * @param grid Matriz da simulação
  * @param agent Agente Vento em movimento
@@ -68,7 +80,12 @@ export function tryWindDispersal(
     return false;
   }
 
-  const species: PlantType = sourceCell.tipoPlanta ?? 'bryophyte';
+  const species: PlantType = sourceCell.tipoPlanta ?? 'angiosperm';
+
+  // Validação ecológica: apenas espécies que aceitam dispersão por vento (Pteridófita, Gimnosperma, Angiosperma)
+  if (!canDisperseWithAgent(species, 'wind')) {
+    return false;
+  }
 
   const neighbors = getNeighbors(grid, coord);
   if (neighbors.length === 0) {
@@ -110,3 +127,63 @@ export function tryWindDispersal(
   // 4. 3 Tentativas falhas consecutivas: nenhuma propagação
   return false;
 }
+
+/**
+ * Realiza o avanço autônomo da propagação de Briófitas por autômato celular.
+ *
+ * Briófitas não dependem de agentes móveis para dispersão. Durante sua fase
+ * reprodutiva ('bloom'), colonizam automaticamente casas vizinhas vazias
+ * adjacentes (vizinhança de Moore) ao longo do tempo.
+ *
+ * @param grid Matriz bidimensional de células
+ * @param options Opções de calibração de RNG e probabilidade
+ * @returns Quantidade de novas sementes plantadas neste tick
+ */
+export function spreadBryophytes(
+  grid: Grid,
+  options?: BryophyteSpreadOptions,
+): number {
+  const rng = options?.rng ?? Math.random;
+  const spreadChance = options?.spreadProbability ?? DEFAULT_BRYOPHYTE_SPREAD_CHANCE;
+
+  // Coleta as fontes de dispersão para evitar mutações concorrentes no mesmo tick
+  const bloomBryophytes: Array<{ row: number; col: number }> = [];
+
+  for (let r = 0; r < grid.length; r++) {
+    for (let c = 0; c < grid[r].length; c++) {
+      const cell = grid[r][c];
+      if (cell.estado === 'bloom' && cell.tipoPlanta === 'bryophyte') {
+        bloomBryophytes.push({ row: r, col: c });
+      }
+    }
+  }
+
+  let plantedCount = 0;
+
+  for (const { row, col } of bloomBryophytes) {
+    if (rng() >= spreadChance) {
+      continue;
+    }
+
+    const neighbors = getNeighbors(grid, { row, col });
+    const emptyNeighbors = neighbors.filter((n) => n.cell.estado === 'empty');
+
+    if (emptyNeighbors.length === 0) {
+      continue;
+    }
+
+    // Escolhe um vizinho vazio aleatório
+    const targetIdx = Math.floor(rng() * emptyNeighbors.length);
+    const target = emptyNeighbors[targetIdx];
+
+    setCell(grid, target.coord, {
+      estado: 'seed',
+      tipoPlanta: 'bryophyte',
+      idade: 0,
+    });
+    plantedCount++;
+  }
+
+  return plantedCount;
+}
+

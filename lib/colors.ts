@@ -40,21 +40,28 @@ export const PALETTE = {
       name: 'Briófita',
       mature: '#15803D',         // Verde floresta denso
       reproductive: '#BEF264',   // Esporo lima luminoso
-      agent: 'wind',
+      agents: [] as const,       // Sem agente móvel (autômato puro)
+    },
+    pteridophyte: {
+      id: 'pteridophyte',
+      name: 'Pteridófita',
+      mature: '#047857',         // Verde musgo / samambaia
+      reproductive: '#34D399',   // Menta soros luminoso
+      agents: ['wind'] as const, // Somente vento
     },
     gymnosperm: {
       id: 'gymnosperm',
       name: 'Gimnosperma',
       mature: '#0D9488',         // Conífera / Teal
       reproductive: '#FBBF24',   // Pinha / Semente dourada
-      agent: 'bird',
+      agents: ['wind', 'bird'] as const, // Vento e pássaro
     },
     angiosperm: {
       id: 'angiosperm',
       name: 'Angiosperma',
       mature: '#059669',         // Esmeralda vibrante
       reproductive: '#F43F5E',   // Flor / Fruto magenta vivo
-      agent: 'bee',
+      agents: ['wind', 'bird', 'bee'] as const, // Todos os agentes
     },
   },
 
