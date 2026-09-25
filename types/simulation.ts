@@ -9,7 +9,10 @@
 export type CellState = 'empty' | 'seed' | 'sprout' | 'mature' | 'bloom';
 
 /** Espécies vegetais disponíveis na simulação */
-export type PlantType = 'bryophyte' | 'gymnosperm' | 'angiosperm';
+export type PlantType = 'bryophyte' | 'pteridophyte' | 'gymnosperm' | 'angiosperm';
+
+/** Tipos de reprodução das espécies vegetais */
+export type ReproductionType = 'spore' | 'seed' | 'flower-fruit';
 
 /**
  * Representa uma célula individual na grade da simulação.
