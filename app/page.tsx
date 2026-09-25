@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import SimulationCanvas from '@/components/SimulationCanvas';
-import type { Cell, GridCoord } from '@/types/simulation';
+import { SPECIES_LIST } from '@/lib/species';
+import { PALETTE } from '@/lib/colors';
+import type { Cell, GridCoord, PlantType } from '@/types/simulation';
 
 interface ClickLog {
   coord: GridCoord;
@@ -11,6 +13,7 @@ interface ClickLog {
 }
 
 export default function Home() {
+  const [activeSpecies, setActiveSpecies] = useState<PlantType>('bryophyte');
   const [lastClick, setLastClick] = useState<ClickLog | null>(null);
   const [clickCount, setClickCount] = useState<number>(0);
 
@@ -19,7 +22,7 @@ export default function Home() {
     setLastClick({ coord, cell, timestamp });
     setClickCount((prev) => prev + 1);
     console.log(
-      `[Plantae Evolution] Clique registrado -> Linha: ${coord.row}, Coluna: ${coord.col} (Estado: ${cell.estado})`,
+      `[Plantae Evolution] Clique registrado -> Linha: ${coord.row}, Coluna: ${coord.col} (Espécie: ${cell.tipoPlanta ?? 'none'}, Estado: ${cell.estado})`,
     );
   };
 
@@ -32,13 +35,73 @@ export default function Home() {
           <span className="text-lg sm:text-xl">🌱</span>
         </h1>
         <p className="text-xs sm:text-sm text-text-muted max-w-xs sm:max-w-md mx-auto">
-          Canvas interativo do autômato celular com detecção de toque e clique
+          Simulação interativa do ecossistema e dispersão botânica por autômato celular
         </p>
       </header>
 
+      {/* Seletor de Espécies (Sprint 2) */}
+      <section className="w-full max-w-[640px] flex flex-col gap-2 px-1 sm:px-0">
+        <div className="flex items-center justify-between text-xs text-text-muted px-1">
+          <span className="font-medium uppercase tracking-wider text-[11px]">
+            Espécie Ativa para Plantio:
+          </span>
+          <span className="text-[11px]">Clique no grid para plantar</span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {SPECIES_LIST.map((sp) => {
+            const isSelected = activeSpecies === sp.id;
+            const agentSymbols = sp.isCellularAutomaton
+              ? '🌱'
+              : sp.dispersalAgents.map((a) => PALETTE.agents[a].symbol).join(' ');
+
+            const agentTitle = sp.isCellularAutomaton
+              ? 'Autômato celular puro (sem agentes)'
+              : `Dispersão: ${sp.dispersalAgents.map((a) => PALETTE.agents[a].name).join(', ')}`;
+
+            return (
+              <button
+                key={sp.id}
+                type="button"
+                onClick={() => setActiveSpecies(sp.id)}
+                className={`flex flex-col text-left p-2.5 rounded-lg border transition-all cursor-pointer ${
+                  isSelected
+                    ? 'border-border-active bg-surface-hover shadow-sm ring-1 ring-border-active'
+                    : 'border-border-subtle bg-surface-card hover:bg-surface-hover opacity-85 hover:opacity-100'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span
+                      className="w-3 h-3 rounded-full border border-black/20 shrink-0"
+                      style={{ backgroundColor: sp.colorMature }}
+                      title={`Cor madura: ${sp.colorMature}`}
+                    />
+                    <span className="font-semibold text-xs sm:text-xs text-foreground truncate">
+                      {sp.name}
+                    </span>
+                  </div>
+                  <span className="text-xs shrink-0" title={agentTitle}>
+                    {agentSymbols}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-text-muted">
+                  <span className="truncate">{sp.reproductionLabel}</span>
+                  <span className="text-[10px] opacity-75 shrink-0 ml-1">
+                    {sp.ticksSeedToSprout + sp.ticksSproutToMature}t
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
       {/* Canvas Central */}
       <div className="w-full max-w-[640px] flex flex-col items-center gap-3 px-1 sm:px-0">
-        <SimulationCanvas onCellClick={handleCellClick} />
+        <SimulationCanvas
+          activeSpecies={activeSpecies}
+          onCellClick={handleCellClick}
+        />
 
         {/* Painel de Coordenadas e Registro de Clique */}
         <div className="w-full flex flex-col sm:flex-row items-center sm:justify-between gap-2.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-surface-card border border-border-subtle text-xs sm:text-sm shadow-sm transition-all">

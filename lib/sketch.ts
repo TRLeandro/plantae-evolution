@@ -31,12 +31,14 @@ import {
   advanceWindAgent,
   DEFAULT_WIND_AGENT_COUNT,
 } from '@/lib/wind';
-import { tryWindDispersal } from '@/lib/pollination';
+import { tryWindDispersal, spreadBryophytes } from '@/lib/pollination';
+import { SPECIES_CATALOG } from '@/lib/species';
 import type {
   Cell,
   CellState,
   Grid,
   GridCoord,
+  PlantType,
   TickState,
   WindAgent,
 } from '@/types/simulation';
@@ -57,6 +59,32 @@ const STATE_COLOR: Record<CellState, readonly [number, number, number]> = {
   bloom: hexToRgb(PALETTE.stages.bloom),
 };
 
+/** Cores específicas por espécie para as fases madura e reprodutiva */
+const SPECIES_COLORS: Record<
+  PlantType,
+  {
+    mature: readonly [number, number, number];
+    reproductive: readonly [number, number, number];
+  }
+> = {
+  bryophyte: {
+    mature: hexToRgb(SPECIES_CATALOG.bryophyte.colorMature),
+    reproductive: hexToRgb(SPECIES_CATALOG.bryophyte.colorReproductive),
+  },
+  pteridophyte: {
+    mature: hexToRgb(SPECIES_CATALOG.pteridophyte.colorMature),
+    reproductive: hexToRgb(SPECIES_CATALOG.pteridophyte.colorReproductive),
+  },
+  gymnosperm: {
+    mature: hexToRgb(SPECIES_CATALOG.gymnosperm.colorMature),
+    reproductive: hexToRgb(SPECIES_CATALOG.gymnosperm.colorReproductive),
+  },
+  angiosperm: {
+    mature: hexToRgb(SPECIES_CATALOG.angiosperm.colorMature),
+    reproductive: hexToRgb(SPECIES_CATALOG.angiosperm.colorReproductive),
+  },
+};
+
 export interface SketchOptions {
   /** Callback disparado ao clicar em uma célula válida */
   onCellClick?: (coord: GridCoord, cell: Cell) => void;
@@ -64,6 +92,8 @@ export interface SketchOptions {
   framesPerTick?: number;
   /** Provedor dinâmico de cadência de frames por tick (para sliders sem recriar o sketch) */
   getFramesPerTick?: () => number;
+  /** Provedor dinâmico da espécie vegetal atualmente selecionada para plantio */
+  getActiveSpecies?: () => PlantType;
   /** Callback opcional disparado em cada tick lógico */
   onTick?: (totalTicks: number) => void;
   /** Quantidade de agentes Vento instanciados na simulação (padrão: 3) */
@@ -115,7 +145,10 @@ export function createSketch(options?: SketchOptions) {
       if (shouldTick) {
         advanceGrid(grid);
 
-        // Dispersão abiótica: o vento transporta sementes ao sobrevoar plantas maduras/em florescência
+        // Autômato celular puro: briófitas em floração colonizam casas adjacentes
+        spreadBryophytes(grid);
+
+        // Dispersão abiótica: o vento transporta sementes ao sobrevoar plantas compatíveis
         for (const agent of windAgents) {
           tryWindDispersal(grid, agent, { cellSize: CELL_SIZE });
         }
@@ -146,6 +179,18 @@ export function createSketch(options?: SketchOptions) {
 
           if (isHover && cell.estado === 'empty') {
             p.fill(...HOVER_RGB);
+          } else if (
+            cell.estado === 'mature' &&
+            cell.tipoPlanta &&
+            SPECIES_COLORS[cell.tipoPlanta]
+          ) {
+            p.fill(...SPECIES_COLORS[cell.tipoPlanta].mature);
+          } else if (
+            cell.estado === 'bloom' &&
+            cell.tipoPlanta &&
+            SPECIES_COLORS[cell.tipoPlanta]
+          ) {
+            p.fill(...SPECIES_COLORS[cell.tipoPlanta].reproductive);
           } else {
             p.fill(...STATE_COLOR[cell.estado]);
           }
@@ -210,9 +255,14 @@ export function createSketch(options?: SketchOptions) {
       const cell = getCell(grid, coord);
       if (!cell) return false;
 
-      // Plantio inicial do MVP (Sprint 1): célula vazia → semente (briófita)
+      // Plantio inicial: célula vazia → semente da espécie ativa selecionada
       if (isCellEmpty(cell)) {
-        updateCell(grid, coord, { estado: 'seed', tipoPlanta: 'bryophyte', idade: 0 });
+        const selectedSpecies = options?.getActiveSpecies?.() ?? 'bryophyte';
+        updateCell(grid, coord, {
+          estado: 'seed',
+          tipoPlanta: selectedSpecies,
+          idade: 0,
+        });
       }
 
       // Notifica o callback com cópia da célula e coordenadas
