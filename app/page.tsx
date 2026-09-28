@@ -3,17 +3,17 @@
 /**
  * Plantae Evolution — Bacia Hidrográfica, Mata Ciliar e Estações
  *
- * Simulador de autômato celular ecológico que demonstra o papel vital
- * da cobertura vegetal ripária (Mata Ciliar) na proteção contra o
- * dessecamento da bacia hidrográfica durante estiagens severas.
- *
- * Referência: TASK.md § 1, 2, 3 e 4
+ * Layout: contêiner centralizado de até 1400px com duas áreas de cor que
+ * se encostam (névoa até 48rem, sálvia com o resto):
+ * - névoa: título, estação + reprodução, pincéis e a moldura do mapa
+ *   (com marcas de linha/coluna, escala, inspeção e legenda);
+ * - sálvia: números da bacia, cenário, ajustes e regras.
+ * No mobile as duas empilham nessa ordem. Ver DESIGN.md.
  */
 
 import { useState, useCallback } from 'react';
 import {
   Cell,
-  CellState,
   GridCoord,
   SimulationMetrics,
   BrushTool,
@@ -21,13 +21,19 @@ import {
 } from '@/lib/types';
 import SimulationCanvas from '@/components/SimulationCanvas';
 import SeasonIndicator from '@/components/SeasonIndicator';
-import ControlBar from '@/components/ControlBar';
+import {
+  BrushPicker,
+  PlaybackControls,
+  ScenarioPicker,
+  SimulationSettings,
+} from '@/components/ControlBar';
 import StatsCard from '@/components/StatsCard';
+import MapFrame, { InspectedCell } from '@/components/MapFrame';
 
 export default function Home() {
   // Estados de Execução e Parâmetros da Simulação
   const [running, setRunning] = useState<boolean>(true);
-  const [speed, setSpeed] = useState<number>(12); // Frames por tick
+  const [speed, setSpeed] = useState<number>(12); // Quadros por tick
   const [waterRadius, setWaterRadius] = useState<number>(2);
   const [disperserCount, setDisperserCount] = useState<number>(10);
   const [activeBrush, setActiveBrush] = useState<BrushTool>('plant_tree');
@@ -55,11 +61,7 @@ export default function Home() {
   });
 
   // Inspeção da célula sob o cursor
-  const [inspectedCell, setInspectedCell] = useState<{
-    coord: GridCoord;
-    cell: Cell;
-    neighborTrees: number;
-  } | null>(null);
+  const [inspectedCell, setInspectedCell] = useState<InspectedCell | null>(null);
 
   // Handlers de Ações
   const handleTogglePlay = useCallback(() => {
@@ -105,219 +107,97 @@ export default function Home() {
     [],
   );
 
-  // Nomes legíveis dos estados celulares
-  const getCellStateLabel = (state: CellState) => {
-    switch (state) {
-      case CellState.LEITO_AGUA:
-        return { label: 'Leito de Água Ativo', badge: 'bg-blue-500/20 text-blue-300 border-blue-500/40', icon: '💧' };
-      case CellState.LEITO_SECO:
-        return { label: 'Leito Seco (Evaporado)', badge: 'bg-slate-500/20 text-slate-300 border-slate-500/40', icon: '🏜️' };
-      case CellState.SOLO_FERTIL:
-        return { label: 'Solo Fértil (Margem Úmida)', badge: 'bg-amber-800/30 text-amber-300 border-amber-600/40', icon: '🟤' };
-      case CellState.SOLO_SECO:
-        return { label: 'Solo Seco Inerte', badge: 'bg-yellow-700/20 text-yellow-200 border-yellow-500/30', icon: '🟡' };
-      case CellState.SEMENTE:
-        return { label: 'Semente em Fixação', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40', icon: '🌰' };
-      case CellState.BROTO:
-        return { label: 'Broto Jovem', badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', icon: '🌱' };
-      case CellState.ARVORE_ADULTA:
-        return { label: 'Árvore Adulta (Mata Ciliar)', badge: 'bg-green-700/30 text-green-300 border-green-500/40', icon: '🌳' };
-      default:
-        return { label: 'Desconhecido', badge: 'bg-surface-panel text-text-muted', icon: '❓' };
-    }
-  };
-
   return (
-    <main className="flex min-h-screen flex-col items-center p-3 sm:p-5 md:p-8 gap-4 sm:gap-6 bg-background text-foreground max-w-full overflow-x-hidden">
-      {/* Header Principal */}
-      <header className="w-full max-w-5xl text-center space-y-2 px-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-card border border-border-subtle text-xs text-text-muted">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span>Autômato Celular Ecológico • Next.js + Canvas 2D</span>
-        </div>
+    // Fundo: a névoa vem do body; a sálvia se estende até a borda direita da
+    // janela pelo ::after do <aside>. O conteúdo fica sempre no contêiner
+    // centralizado de 1400px.
+    <div className="overflow-x-clip">
+      <div className="mx-auto min-h-screen max-w-[1400px] lg:grid lg:grid-cols-[minmax(0,48rem)_minmax(22rem,1fr)]">
+        {/* Área do mapa (névoa) */}
+        <main className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <div className="mx-auto max-w-[44rem] space-y-4">
+            <header className="max-w-prose pb-2">
+              <h1 className="text-2xl font-semibold">Bacia hidrográfica e mata ciliar</h1>
+              <p className="mt-2 text-ink-muted">
+                Um rio atravessa o mapa, e na estiagem os trechos com poucas árvores por perto secam.
+                Use os pincéis para plantar, desmatar ou abrir o rio e veja o que acontece na próxima
+                seca.
+              </p>
+            </header>
 
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-foreground flex items-center justify-center gap-2 sm:gap-3">
-          <span>Bacia Hidrográfica & Mata Ciliar</span>
-          <span className="text-2xl sm:text-3xl">🌱💧</span>
-        </h1>
-
-        <p className="text-xs sm:text-sm text-text-muted max-w-2xl mx-auto leading-relaxed">
-          Simulação interativa da relação vital entre a vegetação ripária e a preservação
-          dos recursos hídricos. Observe como árvores adultas protegem o leito do rio contra o
-          dessecamento durante estiagens severas e como polinizadores regeneram as margens.
-        </p>
-      </header>
-
-      <div className="w-full max-w-5xl space-y-4">
-        {/* Indicador Sazonal Global */}
-        <SeasonIndicator
-          season={metrics.currentSeason}
-          progress={metrics.seasonProgress}
-          totalTicks={metrics.totalTicks}
-        />
-
-        {/* Cartões de Métricas Ecológicas */}
-        <StatsCard metrics={metrics} />
-
-        {/* Layout Central: Canvas e Painel Lateral de Informações */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-          {/* Coluna Central / Canvas (Lg: 8 colunas) */}
-          <div className="lg:col-span-8 flex flex-col items-center gap-3">
-            <SimulationCanvas
-              activePresetId={activePresetId}
-              activeBrush={activeBrush}
-              framesPerTick={speed}
-              waterRadius={waterRadius}
-              disperserCount={disperserCount}
-              running={running}
-              stepTrigger={stepTrigger}
-              resetTrigger={resetTrigger}
-              onMetricsUpdate={handleMetricsUpdate}
-              onCellHover={handleCellHover}
-              className="w-full"
+            <SeasonIndicator
+              season={metrics.currentSeason}
+              progress={metrics.seasonProgress}
+              totalTicks={metrics.totalTicks}
+              actions={
+                <PlaybackControls
+                  running={running}
+                  onTogglePlay={handleTogglePlay}
+                  onStep={handleStep}
+                  onReset={handleReset}
+                />
+              }
             />
 
-            {/* Barra de Status da Célula sob o Cursor / Toque */}
-            <div className="w-full bg-surface-card border border-border-subtle rounded-xl px-3 sm:px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-2 shadow-sm">
-              {inspectedCell ? (
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                  <span className="font-semibold text-border-active">
-                    [{inspectedCell.coord.col}, {inspectedCell.coord.row}]
-                  </span>
-                  <span
-                    className={`px-2 py-0.5 rounded-full border text-[11px] font-medium flex items-center gap-1 ${
-                      getCellStateLabel(inspectedCell.cell.state).badge
-                    }`}
-                  >
-                    <span>{getCellStateLabel(inspectedCell.cell.state).icon}</span>
-                    <span>{getCellStateLabel(inspectedCell.cell.state).label}</span>
-                  </span>
-                  <span className="text-text-muted text-[11px]">
-                    Idade: <strong className="text-foreground">{inspectedCell.cell.age}</strong> ticks
-                  </span>
-                  {inspectedCell.cell.state === CellState.LEITO_AGUA && (
-                    <span
-                      className={`text-[11px] font-medium ${
-                        inspectedCell.neighborTrees >= 3 ? 'text-emerald-400' : 'text-amber-400'
-                      }`}
-                    >
-                      {inspectedCell.neighborTrees >= 3
-                        ? '🛡️ Protegido da Seca (≥3 árvores)'
-                        : `⚠️ Em Risco (${inspectedCell.neighborTrees}/3 árvores)`}
-                    </span>
-                  )}
-                </div>
-              ) : (
-                <span className="text-text-muted text-xs italic">
-                  Passe o cursor ou toque nas células do mapa para inspecionar microclima e cobertura
-                </span>
-              )}
+            <BrushPicker activeBrush={activeBrush} onSelectBrush={setActiveBrush} />
 
-              <span className="text-[11px] text-text-muted font-mono hidden sm:inline">
-                Matriz 32 × 24 (640×480px)
-              </span>
-            </div>
+            <MapFrame inspected={inspectedCell}>
+              <SimulationCanvas
+                activePresetId={activePresetId}
+                activeBrush={activeBrush}
+                framesPerTick={speed}
+                waterRadius={waterRadius}
+                disperserCount={disperserCount}
+                running={running}
+                stepTrigger={stepTrigger}
+                resetTrigger={resetTrigger}
+                onMetricsUpdate={handleMetricsUpdate}
+                onCellHover={handleCellHover}
+                className="w-full"
+              />
+            </MapFrame>
+
+            <p className="text-xs text-ink-muted">
+              Grade de 32 colunas por 24 linhas. A cada tick, todas as células mudam ao mesmo
+              tempo.
+            </p>
           </div>
+        </main>
 
-          {/* Coluna Direita / Legenda e Guia Científico (Lg: 4 colunas) */}
-          <div className="lg:col-span-4 space-y-3">
-            {/* Guia Visual das Entidades */}
-            <div className="bg-surface-card border border-border-subtle rounded-xl p-3.5 shadow-sm space-y-2.5">
-              <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
-                <span>Legenda do Ecossistema</span>
-                <span className="text-sm">🗺️</span>
-              </h3>
+        {/* Área de apoio (sálvia) */}
+        <aside className="relative border-t border-line bg-sage px-4 py-6 sm:px-6 lg:border-t-0 lg:border-l lg:px-8 lg:py-8 lg:after:absolute lg:after:inset-y-0 lg:after:left-full lg:after:w-screen lg:after:bg-sage">
+          <div className="mx-auto max-w-[44rem] space-y-8 lg:mx-0 lg:max-w-[36rem]">
+            <StatsCard metrics={metrics} />
 
-              <div className="space-y-1.5 text-xs">
-                <div className="flex items-center gap-2 p-1.5 rounded-lg bg-surface-panel/60">
-                  <div className="w-3.5 h-3.5 rounded bg-[#1D4ED8] shrink-0 border border-blue-400/40" />
-                  <div className="flex-1">
-                    <strong className="text-blue-300">Leito de Água Ativo</strong>
-                    <p className="text-[10px] text-text-muted">Emite umidade no raio Chebyshev R_água.</p>
-                  </div>
-                </div>
+            <ScenarioPicker activePresetId={activePresetId} onSelectPreset={handleSelectPreset} />
 
-                <div className="flex items-center gap-2 p-1.5 rounded-lg bg-surface-panel/60">
-                  <div className="w-3.5 h-3.5 rounded bg-[#94A3B8] shrink-0 border border-slate-400/40" />
-                  <div className="flex-1">
-                    <strong className="text-slate-300">Leito Seco / Assoreado</strong>
-                    <p className="text-[10px] text-text-muted">Canais evaporados na estiagem sem sombra.</p>
-                  </div>
-                </div>
+            <SimulationSettings
+              speed={speed}
+              onSpeedChange={handleSpeedChange}
+              waterRadius={waterRadius}
+              onWaterRadiusChange={handleWaterRadiusChange}
+              disperserCount={disperserCount}
+              onDisperserCountChange={handleDisperserCountChange}
+            />
 
-                <div className="flex items-center gap-2 p-1.5 rounded-lg bg-surface-panel/60">
-                  <div className="w-3.5 h-3.5 rounded bg-[#78350F] shrink-0 border border-amber-700/50" />
-                  <div className="flex-1">
-                    <strong className="text-amber-300">Solo Fértil (Margem)</strong>
-                    <p className="text-[10px] text-text-muted">Solo hidratado capaz de germinar sementes.</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 p-1.5 rounded-lg bg-surface-panel/60">
-                  <div className="w-3.5 h-3.5 rounded bg-[#FDE68A] shrink-0 border border-yellow-600/30" />
-                  <div className="flex-1">
-                    <strong className="text-yellow-200">Solo Seco Árido</strong>
-                    <p className="text-[10px] text-text-muted">Fora da água; sementes aqui perecem.</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 p-1.5 rounded-lg bg-surface-panel/60">
-                  <div className="w-3.5 h-3.5 rounded bg-[#15803D] shrink-0 border border-green-500/40" />
-                  <div className="flex-1">
-                    <strong className="text-green-300">Árvore Adulta (Mata Ciliar)</strong>
-                    <p className="text-[10px] text-text-muted">≥3 árvores blindam o rio de evaporar na seca.</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 p-1.5 rounded-lg bg-surface-panel/60">
-                  <div className="w-3.5 h-3.5 rounded-full bg-[#FACC15] shrink-0 animate-ping" />
-                  <div className="flex-1">
-                    <strong className="text-yellow-300">Dispersor / Polinizador</strong>
-                    <p className="text-[10px] text-text-muted">Colhe sementes no dossel e semeia o mapa.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Regras Científicas e Ecológicas */}
-            <div className="bg-surface-card border border-border-subtle rounded-xl p-3.5 shadow-sm space-y-2">
-              <h3 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
-                <span>Mecânica da Mata Ciliar</span>
-                <span className="text-sm">🔬</span>
-              </h3>
-              <ul className="text-[11px] text-text-muted space-y-1.5 leading-relaxed list-disc list-inside">
+            <section aria-labelledby="rules-heading">
+              <h2 id="rules-heading" className="mb-2 text-base font-semibold">
+                Como funciona
+              </h2>
+              <ul className="list-disc space-y-2 pl-5 text-sm text-ink-muted">
                 <li>
-                  <strong className="text-foreground">Proteção Térmica:</strong> Na seca, rios com menos de 3 árvores vizinhas têm chance de evaporar a cada tick.
+                  Na estiagem, um trecho de rio com menos de 3 árvores adultas nas 8 células em volta
+                  pode secar a cada tick. Na chuva, trechos secos ao lado de água voltam a encher.
                 </li>
                 <li>
-                  <strong className="text-foreground">Germinação Seletiva:</strong> Sementes em solo fértil viram brotos; em solo árido, secam e morrem após 15 ciclos.
-                </li>
-                <li>
-                  <strong className="text-foreground">Regeneração Pluvial:</strong> Na chuva, leitos secos adjacentes à água renascem e se expandem.
+                  Sementes em terra úmida viram broto e depois árvore. Em terra seca, morrem depois de
+                  15 ticks.
                 </li>
               </ul>
-            </div>
+            </section>
           </div>
-        </div>
-
-        {/* Barra de Controles, Pincéis e Parâmetros */}
-        <ControlBar
-          running={running}
-          onTogglePlay={handleTogglePlay}
-          onStep={handleStep}
-          onReset={handleReset}
-          speed={speed}
-          onSpeedChange={handleSpeedChange}
-          waterRadius={waterRadius}
-          onWaterRadiusChange={handleWaterRadiusChange}
-          disperserCount={disperserCount}
-          onDisperserCountChange={handleDisperserCountChange}
-          activeBrush={activeBrush}
-          onSelectBrush={setActiveBrush}
-          activePresetId={activePresetId}
-          onSelectPreset={handleSelectPreset}
-        />
+        </aside>
       </div>
-    </main>
+    </div>
   );
 }

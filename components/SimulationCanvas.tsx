@@ -5,7 +5,7 @@
  *
  * Executa o loop gráfico desacoplado via requestAnimationFrame com:
  * 1. Renderização a ~60 FPS via Canvas 2D com a paleta canônica do TASK.md.
- * 2. Animação de água, dossel das árvores e partículas aladas dos dispersores.
+ * 2. Ilustração por célula (camada offscreen, só redesenha o que muda) e polinizadores — components/cellArt.ts.
  * 3. Suporte completo a mouse e toque (clique e arrasto contínuo com pincéis).
  * 4. Sincronização throttled de métricas com a árvore React.
  *
@@ -16,7 +16,6 @@ import { useEffect, useRef, useCallback } from 'react';
 import { SimulationEngine, countNeighboringAdultTrees } from '@/lib/engine';
 import {
   Cell,
-  CellState,
   GridCoord,
   SimulationMetrics,
   BrushTool,
@@ -27,12 +26,22 @@ import {
   CELL_SIZE,
   GRID_COLS,
   GRID_ROWS,
-  CELL_COLORS,
-  AGENT_COLOR,
-  AGENT_SEED_COLOR,
+  UI_COLORS,
 } from '@/lib/constants';
+import {
+  DETAIL_THRESHOLD_PX,
+  Detail,
+  drawPollinator,
+  updateCellLayer,
+} from '@/components/cellArt';
 import { mouseToGridCoord, isCoordValid } from '@/lib/utils';
 import { PRESETS } from '@/lib/presets';
+
+// Cores da grade e do destaque sob o cursor (a ilustração das células fica em cellArt.ts)
+const MAP_SYMBOL = {
+  gridLine: 'rgba(23, 38, 31, 0.12)',
+  hoverFill: 'rgba(243, 246, 239, 0.5)', // clareia a célula sob o cursor
+};
 
 export interface SimulationCanvasProps {
   activePresetId: string;
@@ -148,7 +157,7 @@ export default function SimulationCanvas({
     onMetricsUpdateRef.current?.(eng.getMetrics());
   }, [activePresetId, resetTrigger, getEngine, disperserCount]);
 
-  // Passo único manual
+  // Avançar 1 tick manualmente
   useEffect(() => {
     if (stepTrigger === 0) return;
     const eng = engineRef.current;
@@ -203,7 +212,7 @@ export default function SimulationCanvas({
       const isRunning = runningRef.current;
       const targetFramesPerTick = framesPerTickRef.current || 12;
 
-      // 1. Processamento de Ticks Lógicos da Simulação
+      // 1. Avanço de ticks lógicos da simulação
       if (isRunning) {
         frameAccumulator++;
         if (frameAccumulator >= targetFramesPerTick) {
@@ -222,104 +231,22 @@ export default function SimulationCanvas({
       }
 
       // 2. Renderização Gráfica do Grid Celular
-      ctx.fillStyle = '#0B130E';
+      ctx.fillStyle = UI_COLORS.background;
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
       const rows = eng.grid.length;
       const cols = eng.grid[0]?.length ?? 0;
 
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const cell = eng.grid[r][c];
-          const x = c * CELL_SIZE;
-          const y = r * CELL_SIZE;
+      // Abaixo de DETAIL_THRESHOLD_PX por célula na tela, desenho simplificado
+      const detail: Detail =
+        canvas.clientWidth / (cols || 1) >= DETAIL_THRESHOLD_PX ? 'full' : 'simple';
 
-          ctx.fillStyle = CELL_COLORS[cell.state] || '#151E17';
-          ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
-
-          switch (cell.state) {
-            case CellState.LEITO_AGUA: {
-              const wave = Math.sin(visualFrameCount * 0.08 + (c + r) * 0.6) * 1.5;
-              ctx.fillStyle = 'rgba(147, 197, 253, 0.28)';
-              ctx.fillRect(x + 2, y + 4 + wave, CELL_SIZE - 4, 3);
-              ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-              ctx.fillRect(x + 6, y + 10 - wave, CELL_SIZE - 12, 2);
-              break;
-            }
-
-            case CellState.LEITO_SECO: {
-              ctx.strokeStyle = '#64748B';
-              ctx.lineWidth = 1;
-              ctx.beginPath();
-              ctx.moveTo(x + 4, y + 5);
-              ctx.lineTo(x + 10, y + 14);
-              ctx.lineTo(x + 16, y + 8);
-              ctx.stroke();
-              break;
-            }
-
-            case CellState.SEMENTE: {
-              ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-              ctx.beginPath();
-              ctx.arc(x + CELL_SIZE / 2 + 1, y + CELL_SIZE / 2 + 1, 3.5, 0, Math.PI * 2);
-              ctx.fill();
-
-              ctx.fillStyle = '#F59E0B';
-              ctx.beginPath();
-              ctx.arc(x + CELL_SIZE / 2, y + CELL_SIZE / 2, 3.5, 0, Math.PI * 2);
-              ctx.fill();
-
-              ctx.fillStyle = '#FEF3C7';
-              ctx.beginPath();
-              ctx.arc(x + CELL_SIZE / 2 - 1, y + CELL_SIZE / 2 - 1, 1.2, 0, Math.PI * 2);
-              ctx.fill();
-              break;
-            }
-
-            case CellState.BROTO: {
-              ctx.strokeStyle = '#15803D';
-              ctx.lineWidth = 1.8;
-              ctx.beginPath();
-              ctx.moveTo(x + CELL_SIZE / 2, y + CELL_SIZE - 3);
-              ctx.lineTo(x + CELL_SIZE / 2, y + 6);
-              ctx.stroke();
-
-              ctx.fillStyle = '#86EFAC';
-              ctx.beginPath();
-              ctx.ellipse(x + CELL_SIZE / 2 - 3, y + 8, 3.5, 2, -Math.PI / 4, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.beginPath();
-              ctx.ellipse(x + CELL_SIZE / 2 + 3, y + 8, 3.5, 2, Math.PI / 4, 0, Math.PI * 2);
-              ctx.fill();
-              break;
-            }
-
-            case CellState.ARVORE_ADULTA: {
-              ctx.fillStyle = '#451A03';
-              ctx.fillRect(x + CELL_SIZE / 2 - 1.5, y + CELL_SIZE / 2, 3, CELL_SIZE / 2 - 1);
-
-              ctx.fillStyle = '#166534';
-              ctx.beginPath();
-              ctx.arc(x + CELL_SIZE / 2, y + CELL_SIZE / 2 - 1, 7.5, 0, Math.PI * 2);
-              ctx.fill();
-
-              ctx.fillStyle = '#22C55E';
-              ctx.beginPath();
-              ctx.arc(x + CELL_SIZE / 2 - 1.5, y + CELL_SIZE / 2 - 3, 4.5, 0, Math.PI * 2);
-              ctx.fill();
-
-              ctx.fillStyle = '#86EFAC';
-              ctx.beginPath();
-              ctx.arc(x + CELL_SIZE / 2 - 2, y + CELL_SIZE / 2 - 4, 1.5, 0, Math.PI * 2);
-              ctx.fill();
-              break;
-            }
-          }
-        }
-      }
+      // Células: fundo chapado + ilustração (components/cellArt.ts). A camada
+      // offscreen só redesenha as células que mudaram de estado.
+      ctx.drawImage(updateCellLayer(canvas, eng.grid, detail), 0, 0);
 
       // Linhas da grade
-      ctx.strokeStyle = 'rgba(28, 41, 32, 0.7)';
+      ctx.strokeStyle = MAP_SYMBOL.gridLine;
       ctx.lineWidth = 1;
       for (let c = 0; c <= cols; c++) {
         ctx.beginPath();
@@ -334,45 +261,9 @@ export default function SimulationCanvas({
         ctx.stroke();
       }
 
-      // 3. Renderização dos Agentes Dispersores
+      // 3. Polinizadores: corpo, asas e rastro (components/cellArt.ts)
       for (const d of eng.dispersers) {
-        const speed = Math.hypot(d.vx, d.vy) || 1;
-        const dirX = d.vx / speed;
-        const dirY = d.vy / speed;
-
-        ctx.fillStyle = d.hasSeed ? 'rgba(245, 158, 11, 0.25)' : 'rgba(250, 204, 21, 0.22)';
-        ctx.beginPath();
-        ctx.arc(d.x, d.y, 8, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = 'rgba(250, 204, 21, 0.45)';
-        ctx.beginPath();
-        ctx.arc(d.x - dirX * 5, d.y - dirY * 5, 2.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = d.hasSeed ? AGENT_SEED_COLOR : AGENT_COLOR;
-        ctx.beginPath();
-        ctx.arc(d.x, d.y, 4, 0, Math.PI * 2);
-        ctx.fill();
-
-        const wingOffset = Math.sin(visualFrameCount * 0.4 + d.id) * 3;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.moveTo(d.x, d.y);
-        ctx.lineTo(d.x - dirY * (4 + wingOffset), d.y + dirX * (4 + wingOffset));
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(d.x, d.y);
-        ctx.lineTo(d.x + dirY * (4 + wingOffset), d.y - dirX * (4 + wingOffset));
-        ctx.stroke();
-
-        if (d.hasSeed) {
-          ctx.fillStyle = '#D97706';
-          ctx.beginPath();
-          ctx.arc(d.x, d.y + 3, 2, 0, Math.PI * 2);
-          ctx.fill();
-        }
+        drawPollinator(ctx, d.x, d.y, d.vx, d.vy, d.hasSeed, visualFrameCount, d.id, detail);
       }
 
       // 4. Destaque de Célula sob o Cursor
@@ -381,11 +272,11 @@ export default function SimulationCanvas({
         const hx = hover.col * CELL_SIZE;
         const hy = hover.row * CELL_SIZE;
 
-        ctx.strokeStyle = '#4ADE80';
+        ctx.strokeStyle = UI_COLORS.textPrimary;
         ctx.lineWidth = 2;
         ctx.strokeRect(hx + 1, hy + 1, CELL_SIZE - 2, CELL_SIZE - 2);
 
-        ctx.fillStyle = 'rgba(74, 222, 128, 0.15)';
+        ctx.fillStyle = MAP_SYMBOL.hoverFill;
         ctx.fillRect(hx, hy, CELL_SIZE, CELL_SIZE);
       }
 
@@ -465,7 +356,7 @@ export default function SimulationCanvas({
   };
 
   return (
-    <div className={`relative w-full max-w-[640px] aspect-[4/3] rounded-xl overflow-hidden border border-border-subtle bg-[#0B130E] shadow-2xl touch-none select-none flex items-center justify-center ${className ?? ''}`}>
+    <div className={`relative w-full aspect-[4/3] overflow-hidden bg-frame touch-none select-none flex items-center justify-center ${className ?? ''}`}>
       <canvas
         ref={canvasRef}
         width={CANVAS_WIDTH}

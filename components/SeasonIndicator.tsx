@@ -1,101 +1,65 @@
 'use client';
 
 /**
- * SeasonIndicator — Indicador Visual do Ciclo Climático Sazonal
- *
- * Exibe a estação atual (CHUVOSA vs SECA), barra de progresso da temporada
- * e explicações dinâmicas sobre o comportamento ecológico do rio.
- *
- * Referência: TASK.md § Fase 4 (SeasonIndicator.tsx)
+ * SeasonIndicator — estação atual, quanto dela já passou e o que ela
+ * muda no rio. Fica logo acima do mapa, ao lado dos controles de reprodução.
  */
 
+import type { ReactNode } from 'react';
 import { ClimateSeason } from '@/lib/types';
 
 interface SeasonIndicatorProps {
   season: ClimateSeason;
   progress: number; // 0 a 100
   totalTicks: number;
+  /** Controles exibidos à direita do nome da estação */
+  actions?: ReactNode;
 }
 
 export default function SeasonIndicator({
   season,
   progress,
   totalTicks,
+  actions,
 }: SeasonIndicatorProps) {
   const isRain = season === ClimateSeason.CHUVOSA;
 
   return (
-    <div className="w-full bg-surface-card border border-border-subtle rounded-xl p-3 sm:p-4 shadow-sm transition-all duration-300">
-      <div className="flex items-center justify-between gap-3 mb-2.5">
-        <div className="flex items-center gap-2.5">
-          <div
-            className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg shadow-inner transition-colors duration-500 ${
-              isRain
-                ? 'bg-blue-950/70 border border-blue-500/40 text-blue-400'
-                : 'bg-amber-950/70 border border-amber-500/40 text-amber-400'
-            }`}
-          >
-            {isRain ? '🌧️' : '☀️'}
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-text-muted">
-                Ciclo Climático Global
-              </span>
-              <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                  isRain
-                    ? 'bg-blue-500/15 border-blue-500/30 text-blue-300'
-                    : 'bg-amber-500/15 border-amber-500/30 text-amber-300'
-                }`}
-              >
-                {isRain ? 'Estação Chuvosa (Cheia)' : 'Estação Seca (Estiagem)'}
-              </span>
-            </div>
-            <h3 className="text-sm sm:text-base font-bold text-foreground">
-              {isRain ? 'Temporada das Águas' : 'Temporada da Seca Crítica'}
-            </h3>
-          </div>
-        </div>
-
-        <div className="text-right">
-          <span className="text-[11px] font-mono text-text-muted block">
-            Tick #{totalTicks}
-          </span>
-          <span className="text-xs font-semibold text-foreground font-mono">
-            {progress}%
-          </span>
-        </div>
+    <section aria-labelledby="season-heading">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2
+          id="season-heading"
+          className={`text-xl font-semibold ${isRain ? 'text-water-text' : 'text-soil-text'}`}
+        >
+          {isRain ? 'Estação chuvosa' : 'Estiagem'}
+        </h2>
+        {actions}
       </div>
 
-      {/* Barra de Progresso da Estação */}
-      <div className="w-full bg-surface-panel rounded-full h-2 overflow-hidden border border-border-subtle/50 mb-2.5">
-        <div
-          className={`h-full transition-all duration-300 rounded-full ${
-            isRain
-              ? 'bg-gradient-to-r from-blue-600 to-cyan-400'
-              : 'bg-gradient-to-r from-amber-600 to-yellow-400'
-          }`}
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-
-      {/* Feedback e Regras Ecológicas da Estação */}
-      <p className="text-[11px] sm:text-xs text-text-muted leading-relaxed">
-        {isRain ? (
-          <span>
-            <strong className="text-blue-400 font-medium">Águas Abundantes: </strong>
-            Raio hídrico expandido. A evaporação do rio é nula e canais secos
-            adjacentes à água regeneram-se naturalmente.
-          </span>
-        ) : (
-          <span>
-            <strong className="text-amber-400 font-medium">Estiagem Severa: </strong>
-            Trechos de rio com menos de 3 árvores vizinhas sofrem alta evaporação e
-            secam. <span className="text-emerald-400">A mata ciliar preserva a água.</span>
-          </span>
-        )}
+      <p className="mt-1 max-w-prose text-sm text-ink-muted">
+        {isRain
+          ? 'Com chuva, o rio não evapora, e trechos secos ao lado da água voltam a encher.'
+          : 'Na seca, trechos do rio com menos de 3 árvores por perto podem evaporar. Onde a mata ciliar está de pé, a água fica.'}
       </p>
-    </div>
+
+      <div className="mt-3 flex items-center gap-3">
+        <div
+          role="progressbar"
+          aria-label="Quanto da estação já passou"
+          aria-valuenow={progress}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          className="h-2 flex-1 bg-line"
+        >
+          <div
+            className={`h-full transition-[width] duration-300 ${isRain ? 'bg-map-water' : 'bg-map-wet-soil'}`}
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <span className="shrink-0 text-xs text-ink-muted tabular-nums">
+          {progress}% da estação, tick {totalTicks}
+        </span>
+      </div>
+    </section>
   );
 }

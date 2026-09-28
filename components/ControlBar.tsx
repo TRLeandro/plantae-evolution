@@ -1,223 +1,331 @@
 'use client';
 
 /**
- * ControlBar — Barra de Ferramentas e Controles da Simulação
- *
- * Oferece controles para:
- * 1. Play / Pause / Step único.
- * 2. Velocidade da simulação (frames por tick).
- * 3. Slider de raio de alcance da água (R_agua).
- * 4. Seleção de ferramentas de pincel interativo (plantar, desmatar, água).
- * 5. Seletor de cenários predefinidos (Mata Nativa vs Bacia Degradada).
- * 6. Reiniciar simulação.
- *
- * Referência: TASK.md § Fase 4 (ControlBar.tsx)
+ * ControlBar — controles da simulação, divididos em peças que a página
+ * posiciona perto de onde são usadas:
+ * - BrushPicker: os 7 pincéis (fica logo acima do mapa).
+ * - PlaybackControls: pausar/continuar, avançar 1 tick, reiniciar.
+ * - ScenarioPicker: os 4 cenários de partida.
+ * - SimulationSettings: velocidade, alcance da água e polinizadores.
  */
 
-import { BrushTool } from '@/lib/types';
+import { BrushTool, CellState } from '@/lib/types';
 import { PRESETS } from '@/lib/presets';
+import MapSymbol, { MapSymbolKind } from '@/components/MapSymbol';
 
-interface ControlBarProps {
-  running: boolean;
-  onTogglePlay: () => void;
-  onStep: () => void;
-  onReset: () => void;
-  speed: number;
-  onSpeedChange: (speed: number) => void;
-  waterRadius: number;
-  onWaterRadiusChange: (radius: number) => void;
-  disperserCount?: number;
-  onDisperserCountChange?: (count: number) => void;
-  activeBrush: BrushTool;
-  onSelectBrush: (brush: BrushTool) => void;
-  activePresetId: string;
-  onSelectPreset: (presetId: string) => void;
-}
+// Estados compartilhados por todos os botões (ver DESIGN.md › Botões).
+// Selecionado = fundo de tinta, texto claro. Foco de teclado = contorno
+// externo em tinta (globals.css). Nenhum dos dois usa cor saturada.
+export const buttonBase =
+  'inline-flex items-center justify-center gap-2 rounded-sm border px-3 py-2 text-sm ' +
+  'transition-colors cursor-pointer ' +
+  'active:translate-y-px ' +
+  'disabled:cursor-not-allowed disabled:active:translate-y-0 ' +
+  'disabled:border-line disabled:bg-transparent disabled:text-ink-muted';
 
-const BRUSHES: Array<{ id: BrushTool; label: string; icon: string; desc: string }> = [
-  { id: 'plant_tree', label: 'Árvore', icon: '🌳', desc: 'Plantar mata ciliar madura' },
-  { id: 'plant_seed', label: 'Semente', icon: '🌱', desc: 'Depositar semente manual' },
-  { id: 'deforest', label: 'Desmatar', icon: '🪓', desc: 'Remover vegetação e sombra' },
-  { id: 'water_channel', label: 'Canal Água', icon: '💧', desc: 'Escavar leito de rio ativo' },
-  { id: 'dry_channel', label: 'Secar Canal', icon: '🏜️', desc: 'Secar leito de rio' },
-  { id: 'dry_soil', label: 'Solo Seco', icon: '🟡', desc: 'Colocar solo seco inerte' },
-  { id: 'inspect', label: 'Inspecionar', icon: '🔍', desc: 'Apenas consultar célula' },
+export const buttonIdle = 'border-control-border bg-frame text-ink hover:bg-sage';
+
+export const buttonSelected = 'border-ink bg-ink text-mist font-medium hover:bg-ink';
+
+// ---------------------------------------------------------------------------
+// Pincéis
+// ---------------------------------------------------------------------------
+
+export const BRUSHES: Array<{ id: BrushTool; label: string; hint: string; symbol: MapSymbolKind }> = [
+  {
+    id: 'plant_tree',
+    label: 'Árvore',
+    hint: 'Planta uma árvore adulta.',
+    symbol: CellState.ARVORE_ADULTA,
+  },
+  {
+    id: 'plant_seed',
+    label: 'Semente',
+    hint: 'Deixa uma semente. Ela só brota em terra úmida.',
+    symbol: CellState.SEMENTE,
+  },
+  {
+    id: 'deforest',
+    label: 'Desmatar',
+    hint: 'Tira árvores, brotos e sementes. Sobra terra.',
+    symbol: 'deforest',
+  },
+  {
+    id: 'water_channel',
+    label: 'Rio',
+    hint: 'Abre um trecho de rio com água.',
+    symbol: CellState.LEITO_AGUA,
+  },
+  {
+    id: 'dry_channel',
+    label: 'Secar rio',
+    hint: 'Seca um trecho de rio que tem água.',
+    symbol: CellState.LEITO_SECO,
+  },
+  {
+    id: 'dry_soil',
+    label: 'Terra seca',
+    hint: 'Troca o que houver na célula por terra seca.',
+    symbol: CellState.SOLO_SECO,
+  },
+  {
+    id: 'inspect',
+    label: 'Só olhar',
+    hint: 'Não muda nada. Serve para ver o que tem em cada célula.',
+    symbol: 'none',
+  },
 ];
 
-export default function ControlBar({
+export function BrushPicker({
+  activeBrush,
+  onSelectBrush,
+}: {
+  activeBrush: BrushTool;
+  onSelectBrush: (brush: BrushTool) => void;
+}) {
+  const active = BRUSHES.find((b) => b.id === activeBrush);
+
+  return (
+    <div role="group" aria-labelledby="brush-heading">
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2 id="brush-heading" className="text-base font-semibold">
+          Pincel
+        </h2>
+        <p className="text-sm text-ink-muted">Clique ou arraste no mapa. {active?.hint}</p>
+      </div>
+
+      <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+        {BRUSHES.map((b) => {
+          const isSelected = activeBrush === b.id;
+          return (
+            <button
+              key={b.id}
+              type="button"
+              aria-pressed={isSelected}
+              onClick={() => onSelectBrush(b.id)}
+              className={`${buttonBase} ${isSelected ? buttonSelected : buttonIdle} flex-col gap-1 px-1 py-2 whitespace-nowrap`}
+            >
+              <MapSymbol kind={b.symbol} />
+              <span>{b.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Reprodução
+// ---------------------------------------------------------------------------
+
+export function PlaybackControls({
   running,
   onTogglePlay,
   onStep,
   onReset,
+}: {
+  running: boolean;
+  onTogglePlay: () => void;
+  onStep: () => void;
+  onReset: () => void;
+}) {
+  return (
+    <div className="flex gap-2">
+      <button
+        type="button"
+        onClick={onTogglePlay}
+        className={`${buttonBase} ${buttonIdle} min-w-24 font-medium`}
+      >
+        {running ? 'Pausar' : 'Continuar'}
+      </button>
+      <button
+        type="button"
+        onClick={onStep}
+        disabled={running}
+        title={running ? 'Pause a simulação para avançar um tick de cada vez' : undefined}
+        className={`${buttonBase} ${buttonIdle}`}
+      >
+        Avançar 1 tick
+      </button>
+      <button type="button" onClick={onReset} className={`${buttonBase} ${buttonIdle}`}>
+        Reiniciar
+      </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Cenários
+// ---------------------------------------------------------------------------
+
+// Nomes e descrições para a tela; os dados vêm de lib/presets.ts.
+const SCENARIO_TEXT: Record<string, { name: string; description: string }> = {
+  balanced: {
+    name: 'Mata preservada',
+    description: 'Margens com mata fechada. O rio atravessa a seca sem perder água.',
+  },
+  degraded: {
+    name: 'Margens desmatadas',
+    description: 'Pouca árvore na beira do rio. Na primeira seca, boa parte dele evapora.',
+  },
+  restoration: {
+    name: 'Em recuperação',
+    description: 'Restos de mata e alguns corredores. Os polinizadores ajudam a replantar.',
+  },
+  dry_soil: {
+    name: 'Terra seca',
+    description: 'Mapa vazio, sem água nem plantas. Bom para montar tudo do zero.',
+  },
+};
+
+export function ScenarioPicker({
+  activePresetId,
+  onSelectPreset,
+}: {
+  activePresetId: string;
+  onSelectPreset: (presetId: string) => void;
+}) {
+  const active = SCENARIO_TEXT[activePresetId];
+
+  return (
+    <div role="group" aria-labelledby="scenario-heading">
+      <h2 id="scenario-heading" className="mb-2 text-base font-semibold">
+        Cenário
+      </h2>
+      <div className="grid grid-cols-2 gap-2">
+        {Object.values(PRESETS).map((p) => {
+          const isSelected = activePresetId === p.id;
+          return (
+            <button
+              key={p.id}
+              type="button"
+              aria-pressed={isSelected}
+              onClick={() => onSelectPreset(p.id)}
+              className={`${buttonBase} ${isSelected ? buttonSelected : buttonIdle} justify-start text-left`}
+            >
+              {SCENARIO_TEXT[p.id]?.name ?? p.name}
+            </button>
+          );
+        })}
+      </div>
+      {active && <p className="mt-2 text-sm text-ink-muted">{active.description}</p>}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Ajustes
+// ---------------------------------------------------------------------------
+
+// A velocidade é o parâmetro real do motor: quantos quadros de animação
+// passam entre um tick e o seguinte. Menos quadros = mais rápido.
+const FRAMES_MIN = 4;
+const FRAMES_MAX = 28;
+const DISPLAY_HZ = 60; // quadros por segundo de uma tela comum
+
+function Slider({
+  id,
+  label,
+  value,
+  display,
+  min,
+  max,
+  step,
+  onChange,
+  note,
+}: {
+  id: string;
+  label: string;
+  value: number;
+  display: string;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (v: number) => void;
+  note?: string;
+}) {
+  return (
+    <div>
+      <div className="mb-1 flex items-baseline justify-between gap-4 text-sm">
+        <label htmlFor={id}>{label}</label>
+        <output htmlFor={id} className="font-medium tabular-nums">
+          {display}
+        </output>
+      </div>
+      <input
+        id={id}
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        aria-describedby={note ? `${id}-note` : undefined}
+        className="w-full cursor-pointer"
+      />
+      {note && (
+        <p id={`${id}-note`} className="mt-1 text-xs text-ink-muted">
+          {note}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export function SimulationSettings({
   speed,
   onSpeedChange,
   waterRadius,
   onWaterRadiusChange,
   disperserCount,
   onDisperserCountChange,
-  activeBrush,
-  onSelectBrush,
-  activePresetId,
-  onSelectPreset,
-}: ControlBarProps) {
+}: {
+  speed: number;
+  onSpeedChange: (speed: number) => void;
+  waterRadius: number;
+  onWaterRadiusChange: (radius: number) => void;
+  disperserCount?: number;
+  onDisperserCountChange?: (count: number) => void;
+}) {
+  const perSecond = Math.round((DISPLAY_HZ / speed) * 10) / 10;
+  const count = disperserCount ?? 10;
+
   return (
-    <div className="w-full bg-surface-card border border-border-subtle rounded-xl p-3 sm:p-4 shadow-sm space-y-3.5">
-      {/* Linha Superior: Botões de Execução Principal e Presets */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5">
-        {/* Controles de Playback */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onTogglePlay}
-            className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer ${
-              running
-                ? 'bg-amber-600/20 text-amber-300 border border-amber-500/40 hover:bg-amber-600/30'
-                : 'bg-emerald-600/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-600/30'
-            }`}
-          >
-            <span>{running ? '⏸' : '▶'}</span>
-            <span>{running ? 'Pausar' : 'Iniciar'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onStep}
-            disabled={running}
-            className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-surface-panel border border-border-subtle text-foreground hover:bg-surface-hover hover:border-border-active/40 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center gap-1"
-            title="Avançar exatamente 1 tick"
-          >
-            <span>⏭</span>
-            <span className="hidden sm:inline">Passo Único</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={onReset}
-            className="px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium bg-surface-panel border border-border-subtle text-text-muted hover:text-foreground hover:bg-surface-hover hover:border-red-500/40 transition-all cursor-pointer flex items-center gap-1"
-            title="Reiniciar Simulação"
-          >
-            <span>🔄</span>
-            <span className="hidden sm:inline">Reiniciar</span>
-          </button>
-        </div>
-
-        {/* Seletor de Cenários Predefinidos */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 max-w-full">
-          <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wider shrink-0 hidden md:inline">
-            Cenário:
-          </span>
-          {Object.values(PRESETS).map((p) => {
-            const isSelected = activePresetId === p.id;
-            return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => onSelectPreset(p.id)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all shrink-0 cursor-pointer border ${
-                  isSelected
-                    ? 'bg-border-active/15 border-border-active text-emerald-300 shadow-sm'
-                    : 'bg-surface-panel border-border-subtle text-text-muted hover:text-foreground hover:border-border-active/30'
-                }`}
-                title={p.description}
-              >
-                {p.name}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Linha Intermediária: Ferramentas de Pincel Interativo */}
-      <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">
-            Ferramenta Interativa de Desenho (Clique ou arraste no grid):
-          </span>
-          <span className="text-[11px] text-emerald-400 font-medium hidden sm:inline">
-            {BRUSHES.find((b) => b.id === activeBrush)?.desc}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1.5">
-          {BRUSHES.map((b) => {
-            const isSelected = activeBrush === b.id;
-            return (
-              <button
-                key={b.id}
-                type="button"
-                onClick={() => onSelectBrush(b.id)}
-                className={`px-2 py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-all cursor-pointer border ${
-                  isSelected
-                    ? 'bg-border-active/20 border-border-active text-foreground font-semibold shadow-inner'
-                    : 'bg-surface-panel border-border-subtle text-text-muted hover:text-foreground hover:bg-surface-hover'
-                }`}
-              >
-                <span>{b.icon}</span>
-                <span className="truncate">{b.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Linha Inferior: Sliders de Parâmetros (Velocidade, Raio Hídrico e Polinizadores) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 border-t border-border-subtle/50">
-        {/* Slider de Velocidade */}
-        <div className="space-y-1">
-          <div className="flex justify-between items-center text-xs">
-            <span className="text-text-muted font-medium">Cadência de Ticks:</span>
-            <span className="font-mono text-foreground font-semibold">
-              {speed <= 6 ? '⚡ Rápido' : speed >= 20 ? '🐢 Lento' : '⚖️ Normal'} ({speed} frames/tick)
-            </span>
-          </div>
-          <input
-            type="range"
-            min={4}
-            max={28}
-            step={2}
-            value={speed}
-            onChange={(e) => onSpeedChange(Number(e.target.value))}
-            className="w-full accent-emerald-400 cursor-pointer h-1.5 bg-surface-panel rounded-lg"
-          />
-        </div>
-
-        {/* Slider de Raio Hídrico */}
-        <div className="space-y-1">
-          <div className="flex justify-between items-center text-xs">
-            <span className="text-text-muted font-medium">Raio Hídrico do Rio ($R_{'\\text{água}'}$):</span>
-            <span className="font-mono text-blue-400 font-semibold">
-              {waterRadius} {waterRadius === 1 ? 'célula' : 'células'}
-            </span>
-          </div>
-          <input
-            type="range"
-            min={1}
-            max={4}
-            step={1}
-            value={waterRadius}
-            onChange={(e) => onWaterRadiusChange(Number(e.target.value))}
-            className="w-full accent-blue-400 cursor-pointer h-1.5 bg-surface-panel rounded-lg"
-          />
-        </div>
-
-        {/* Slider de Polinizadores */}
-        <div className="space-y-1">
-          <div className="flex justify-between items-center text-xs">
-            <span className="text-text-muted font-medium">Polinizadores:</span>
-            <span className="font-mono text-amber-400 font-semibold">
-              {disperserCount ?? 10} {(disperserCount ?? 10) === 1 ? 'agente' : 'agentes'}
-            </span>
-          </div>
-          <input
-            type="range"
-            min={0}
-            max={30}
-            step={1}
-            value={disperserCount ?? 10}
-            onChange={(e) => onDisperserCountChange?.(Number(e.target.value))}
-            className="w-full accent-amber-400 cursor-pointer h-1.5 bg-surface-panel rounded-lg"
-          />
-        </div>
+    <div>
+      <h2 className="mb-3 text-base font-semibold">Ajustes</h2>
+      <div className="space-y-4">
+        <Slider
+          id="speed"
+          label="Quadros por tick"
+          value={speed}
+          display={`1 tick a cada ${speed} quadros`}
+          min={FRAMES_MIN}
+          max={FRAMES_MAX}
+          step={2}
+          onChange={onSpeedChange}
+          note={`Menos quadros, simulação mais rápida. Numa tela de ${DISPLAY_HZ} quadros por segundo: ${DISPLAY_HZ} ÷ ${speed} = ${perSecond.toLocaleString('pt-BR')} ticks por segundo.`}
+        />
+        <Slider
+          id="water-radius"
+          label="Alcance da água no solo"
+          value={waterRadius}
+          display={`${waterRadius} ${waterRadius === 1 ? 'célula' : 'células'}`}
+          min={1}
+          max={4}
+          step={1}
+          onChange={onWaterRadiusChange}
+        />
+        <Slider
+          id="dispersers"
+          label="Polinizadores"
+          value={count}
+          display={String(count)}
+          min={0}
+          max={30}
+          step={1}
+          onChange={(v) => onDisperserCountChange?.(v)}
+        />
       </div>
     </div>
   );

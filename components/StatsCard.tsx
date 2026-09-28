@@ -1,15 +1,11 @@
 'use client';
 
 /**
- * StatsCard — Painel de Métricas Ecológicas da Bacia Hidrográfica
- *
- * Apresenta indicadores em tempo real:
- * 1. Extensão do Rio Preservada vs Leito Seco.
- * 2. Densidade da Mata Ciliar e Cobertura Arbórea.
- * 3. Taxa de Germinação Efetiva (sementes vingadas vs perdidas no seco).
- * 4. Atividade dos Polinizadores / Dispersores.
- *
- * Referência: TASK.md § Fase 4 (StatsCard.tsx)
+ * StatsCard — números da bacia em tempo real:
+ * 1. Quanto do rio ainda tem água.
+ * 2. Quanto do rio está protegido pela mata ciliar.
+ * 3. Quantas sementes brotaram (vs. secaram).
+ * 4. Sementes espalhadas pelos polinizadores.
  */
 
 import { SimulationMetrics } from '@/lib/types';
@@ -18,127 +14,89 @@ interface StatsCardProps {
   metrics: SimulationMetrics;
 }
 
-export default function StatsCard({ metrics }: StatsCardProps) {
-  // Cores de status para a integridade do rio
-  const riverStatusColor =
-    metrics.riverPreservationPct > 70
-      ? 'text-emerald-400'
-      : metrics.riverPreservationPct > 35
-      ? 'text-amber-400'
-      : 'text-red-400';
+// "1 broto", "2 brotos"
+function count(n: number, singular: string, plural: string) {
+  return `${n} ${n === 1 ? singular : plural}`;
+}
 
-  const riverBarBg =
-    metrics.riverPreservationPct > 70
-      ? 'bg-emerald-500'
-      : metrics.riverPreservationPct > 35
-      ? 'bg-amber-500'
-      : 'bg-red-500';
+function statusColor(pct: number) {
+  if (pct > 70) return 'text-tree-text';
+  if (pct > 35) return 'text-soil-text';
+  return 'text-rust-text';
+}
+
+function Bar({ pct, className }: { pct: number; className: string }) {
+  return (
+    <div className="mt-2 h-1 bg-line" aria-hidden="true">
+      <div className={`h-full transition-[width] duration-300 ${className}`} style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  valueClass = '',
+  children,
+}: {
+  label: string;
+  value: string;
+  valueClass?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="border-t border-line pt-3">
+      <dt className="text-sm text-ink-muted">{label}</dt>
+      <dd className={`text-2xl font-semibold tabular-nums ${valueClass}`}>{value}</dd>
+      <dd className="text-xs text-ink-muted tabular-nums">{children}</dd>
+    </div>
+  );
+}
+
+export default function StatsCard({ metrics }: StatsCardProps) {
+  const resolvedSeeds = metrics.seedsGerminated + metrics.seedsLost;
 
   return (
-    <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-      {/* Card 1: Preservação do Rio */}
-      <div className="bg-surface-card border border-border-subtle rounded-xl p-3 sm:p-3.5 shadow-sm hover:border-border-active/50 transition-all flex flex-col justify-between">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wider flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
-            Integridade do Rio
-          </span>
-          <span className={`text-sm font-bold font-mono ${riverStatusColor}`}>
-            {metrics.riverPreservationPct}%
-          </span>
-        </div>
+    <section aria-labelledby="stats-heading">
+      <h2 id="stats-heading" className="mb-3 text-base font-semibold">
+        Como está a bacia
+      </h2>
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
+        <Stat
+          label="Rio com água"
+          value={`${metrics.riverPreservationPct}%`}
+          valueClass={statusColor(metrics.riverPreservationPct)}
+        >
+          {count(metrics.activeRiverCells, 'trecho', 'trechos')} com água, {count(metrics.dryRiverCells, 'seco', 'secos')}
+          <Bar
+            pct={metrics.riverPreservationPct}
+            className={metrics.riverPreservationPct > 35 ? 'bg-map-water' : 'bg-map-rust'}
+          />
+        </Stat>
 
-        <div className="space-y-1.5">
-          <div className="w-full bg-surface-panel rounded-full h-1.5 overflow-hidden">
-            <div
-              className={`h-full transition-all duration-300 rounded-full ${riverBarBg}`}
-              style={{ width: `${metrics.riverPreservationPct}%` }}
-            />
-          </div>
-          <div className="flex justify-between items-center text-[10px] text-text-muted font-mono">
-            <span>Água ativa: <strong className="text-foreground">{metrics.activeRiverCells}</strong></span>
-            <span>Seco: <strong className="text-foreground">{metrics.dryRiverCells}</strong></span>
-          </div>
-        </div>
-      </div>
+        <Stat
+          label="Rio protegido pela mata"
+          value={`${metrics.riparianDensityPct}%`}
+          valueClass={statusColor(metrics.riparianDensityPct)}
+        >
+          {count(metrics.adultTreeCount, 'árvore adulta', 'árvores adultas')}, {count(metrics.sproutCount, 'broto', 'brotos')}
+          <Bar pct={metrics.riparianDensityPct} className="bg-map-tree" />
+        </Stat>
 
-      {/* Card 2: Densidade da Mata Ciliar */}
-      <div className="bg-surface-card border border-border-subtle rounded-xl p-3 sm:p-3.5 shadow-sm hover:border-border-active/50 transition-all flex flex-col justify-between">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wider flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-            Mata Ciliar (Sombra)
-          </span>
-          <span className="text-sm font-bold font-mono text-emerald-400">
-            {metrics.riparianDensityPct}%
-          </span>
-        </div>
+        <Stat
+          label="Sementes que brotaram"
+          value={resolvedSeeds > 0 ? `${metrics.effectiveGerminationRate}%` : '—'}
+        >
+          {resolvedSeeds > 0
+            ? `${metrics.seedsGerminated} ${metrics.seedsGerminated === 1 ? 'brotou' : 'brotaram'}, ${metrics.seedsLost} ${metrics.seedsLost === 1 ? 'secou' : 'secaram'}`
+            : 'Nenhuma semente germinou ou secou ainda'}
+          {resolvedSeeds > 0 && <Bar pct={metrics.effectiveGerminationRate} className="bg-map-seed" />}
+        </Stat>
 
-        <div className="space-y-1.5">
-          <div className="w-full bg-surface-panel rounded-full h-1.5 overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-emerald-600 to-green-400 transition-all duration-300 rounded-full"
-              style={{ width: `${metrics.riparianDensityPct}%` }}
-            />
-          </div>
-          <div className="flex justify-between items-center text-[10px] text-text-muted font-mono">
-            <span>Árvores adultas: <strong className="text-foreground">{metrics.adultTreeCount}</strong></span>
-            <span>Brotos: <strong className="text-foreground">{metrics.sproutCount}</strong></span>
-          </div>
-        </div>
-      </div>
-
-      {/* Card 3: Germinação Efetiva */}
-      <div className="bg-surface-card border border-border-subtle rounded-xl p-3 sm:p-3.5 shadow-sm hover:border-border-active/50 transition-all flex flex-col justify-between">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wider flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
-            Germinação Efetiva
-          </span>
-          <span className="text-sm font-bold font-mono text-amber-300">
-            {metrics.effectiveGerminationRate}%
-          </span>
-        </div>
-
-        <div className="space-y-1.5">
-          <div className="w-full bg-surface-panel rounded-full h-1.5 overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-amber-600 to-yellow-400 transition-all duration-300 rounded-full"
-              style={{ width: `${metrics.effectiveGerminationRate}%` }}
-            />
-          </div>
-          <div className="flex justify-between items-center text-[10px] text-text-muted font-mono">
-            <span>Vingaram: <strong className="text-emerald-400">{metrics.seedsGerminated}</strong></span>
-            <span>Perdidas no seco: <strong className="text-red-400">{metrics.seedsLost}</strong></span>
-          </div>
-        </div>
-      </div>
-
-      {/* Card 4: Dispersão e Sementes */}
-      <div className="bg-surface-card border border-border-subtle rounded-xl p-3 sm:p-3.5 shadow-sm hover:border-border-active/50 transition-all flex flex-col justify-between">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wider flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-yellow-400 inline-block animate-pulse" />
-            Polinização & Dispersão
-          </span>
-          <span className="text-sm font-bold font-mono text-yellow-300">
-            {metrics.totalSeedsDropped} 🌰
-          </span>
-        </div>
-
-        <div className="space-y-1.5">
-          <div className="w-full bg-surface-panel rounded-full h-1.5 overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-yellow-500 to-amber-300 transition-all duration-300 rounded-full"
-              style={{ width: `${Math.min(100, (metrics.seedCount / 20) * 100)}%` }}
-            />
-          </div>
-          <div className="flex justify-between items-center text-[10px] text-text-muted font-mono">
-            <span>Sementes ativas no mapa: <strong className="text-foreground">{metrics.seedCount}</strong></span>
-            <span>Dispersores: <strong className="text-foreground">{metrics.disperserCount ?? 10}</strong></span>
-          </div>
-        </div>
-      </div>
-    </div>
+        <Stat label="Sementes espalhadas" value={String(metrics.totalSeedsDropped)}>
+          {metrics.seedCount} no chão agora, {count(metrics.disperserCount ?? 10, 'polinizador', 'polinizadores')}
+        </Stat>
+      </dl>
+    </section>
   );
 }

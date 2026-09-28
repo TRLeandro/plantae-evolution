@@ -1,48 +1,48 @@
 /**
  * Plantae Evolution — Paleta de Cores e Tokens Visuais
  *
- * Centraliza as definições de cores para a UI (Tailwind CSS)
- * e para a simulação gráfica em canvas (p5.js).
+ * Legado do motor p5 (lib/sketch.ts), usado só por lib/__tests__/sketch.test.ts.
+ * O mapa real usa lib/constants.ts. Valores sincronizados com app/globals.css.
  */
 
 export const PALETTE = {
   // Cores da Interface (UI)
   ui: {
-    background: '#0B130E',       // Deep Biosphere (fundo principal)
-    surfacePanel: '#132219',     // Painéis laterais (config e impacto)
-    surfaceCard: '#1C3225',      // Cards internos, botões e caixas
-    surfaceHover: '#244030',     // Estados de hover em cards/botões
-    borderSubtle: '#284B37',     // Divisórias e bordas sutis
-    borderActive: '#4ADE80',     // Borda ativa / foco / seleção
-    textPrimary: '#F2FBF5',      // Texto principal de alto contraste
-    textMuted: '#94A89C',        // Labels secundárias e unidades
+    background: '#E8EDE4',       // Névoa (fundo da página)
+    surfacePanel: '#D8E0D2',     // Sálvia (coluna de apoio)
+    surfaceCard: '#F3F6EF',      // Moldura do mapa e botões
+    surfaceHover: '#D8E0D2',     // Hover de botões
+    borderSubtle: '#A9B5A2',     // Linhas finas
+    borderActive: '#17261F',     // Selecionado e foco (tinta)
+    textPrimary: '#17261F',      // Tinta
+    textMuted: '#4A5A4F',        // Texto secundário
   },
 
   // Grid / Matriz da Simulação
   grid: {
-    empty: '#151E17',            // Solo fértil desocupado
-    lines: '#1C2920',            // Linhas da grade da matriz
-    hover: '#223829',            // Célula destacada ao passar o mouse
+    empty: '#9C6934',            // Terra úmida desocupada
+    lines: '#A9B5A2',            // Linhas da grade
+    hover: '#F3F6EF',            // Célula sob o cursor (clareada)
   },
 
   // Ciclo Ontogenético da Planta (Ciclo de Vida)
   stages: {
-    seed: '#D4A373',             // Semente recém-plantada (âmbar terroso)
-    sprout: '#86EFAC',           // Broto em crescimento (verde claro vivo)
-    mature: '#16A34A',           // Planta madura estável (verde esmeralda)
+    seed: '#E6C27A',             // Semente (ponto ocre)
+    sprout: '#6FA96B',           // Broto
+    mature: '#2F5D3A',           // Planta adulta
     bloom: '#FB7185',            // Fase reprodutiva / florescência (coral)
   },
 
   // Bacia Hidrográfica e Mata Ciliar (TASK.md § Fase 3)
   watershed: {
-    water: '#1D4ED8',            // LEITO_AGUA (Azul vivo)
-    dryRiver: '#94A3B8',         // LEITO_SECO (Cinza leito árido)
-    fertileSoil: '#78350F',      // SOLO_FERTIL (Marrom úmido)
-    drySoil: '#FDE68A',          // SOLO_SECO (Areia / Árido)
-    seed: '#D97706',             // SEMENTE (Ponto ocre)
-    sprout: '#86EFAC',           // BROTO (Verde broto)
-    tree: '#15803D',             // ARVORE_ADULTA (Verde escuro de dossel)
-    disperser: '#FACC15',        // DISPERSOR (Amarelo brilhante)
+    water: '#1B6E8C',            // LEITO_AGUA (rio com água)
+    dryRiver: '#A7AE9F',         // LEITO_SECO (rio seco)
+    fertileSoil: '#9C6934',      // SOLO_FERTIL (terra úmida)
+    drySoil: '#D6C49A',          // SOLO_SECO (terra seca)
+    seed: '#E6C27A',             // SEMENTE (ponto)
+    sprout: '#6FA96B',           // BROTO
+    tree: '#2F5D3A',             // ARVORE_ADULTA
+    disperser: '#E0A526',        // DISPERSOR (polinizador)
   },
 
   // Identidade das Espécies (Fase 2 / Sprint 2)
@@ -94,11 +94,11 @@ export const PALETTE = {
 
   // Métricas do Painel de Impacto Ambiental
   metrics: {
-    o2: '#38BDF8',               // Oxigênio gerado (Azul celeste)
-    co2: '#34D399',              // Carbono capturado (Menta viva)
-    warmingHigh: '#EF4444',      // Alerta crítico de aquecimento
-    warmingNeutral: '#F59E0B',   // Estado intermediário
-    warmingLow: '#10B981',       // Planeta regenerado / equilibrado
+    o2: '#155A73',               // Oxigênio gerado
+    co2: '#2F5D3A',              // Carbono capturado
+    warmingHigh: '#9A3A24',      // Alerta crítico (ferrugem)
+    warmingNeutral: '#6F4820',   // Estado intermediário
+    warmingLow: '#2F5D3A',       // Equilibrado
   },
 } as const;
 

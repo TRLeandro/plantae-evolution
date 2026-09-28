@@ -1,86 +1,110 @@
 @import "tailwindcss";
 
+/*
+ * Plantae Evolution — tokens de design
+ * Direção: carta hidrográfica com a paleta do próprio bioma.
+ * Regra de hierarquia: nada da interface é mais saturado que o mapa.
+ * Mantenha em sincronia com lib/constants.ts (CELL_COLORS, UI_COLORS) e
+ * lib/colors.ts. Regras completas em DESIGN.md.
+ */
+
 :root {
-  /* UI Foundation */
-  --background: #0b130e;
-  --foreground: #f2fbf5;
-  --surface-panel: #132219;
-  --surface-card: #1c3225;
-  --surface-hover: #244030;
-  --border-subtle: #284b37;
-  --border-active: #4ade80;
-  --text-muted: #94a89c;
+  /* Superfícies (verdes de névoa e sálvia, não papel) */
+  --mist: #e8ede4;          /* fundo da página */
+  --sage: #d8e0d2;          /* coluna de apoio */
+  --frame: #f3f6ef;         /* fundo da moldura do mapa */
+  --ink: #17261f;           /* texto, moldura, selecionado */
+  --ink-muted: #4a5a4f;     /* texto secundário: 6.2:1 névoa, 5.4:1 sálvia */
+  --line: #a9b5a2;          /* linhas finas decorativas */
+  --control-border: #6b7a6e;/* borda de botão: 3.8:1 névoa, 3.4:1 sálvia */
 
-  /* Matriz / Grid */
-  --grid-empty: #151e17;
-  --grid-lines: #1c2920;
-  --grid-hover: #223829;
+  /* Cores de dado em texto (≥ 4.5:1 sobre névoa, sálvia e moldura).
+     Versões escurecidas das cores do mapa, mesmo matiz. */
+  --water-text: #155a73;
+  --soil-text: #6f4820;
+  --tree-text: #2f5d3a;
+  --rust-text: #9a3a24;
 
-  /* Ciclo da Planta */
-  --stage-seed: #d4a373;
-  --stage-sprout: #86efac;
-  --stage-mature: #16a34a;
-  --stage-bloom: #fb7185;
-
-  /* Bacia Hidrográfica e Mata Ciliar */
-  --watershed-water: #1d4ed8;
-  --watershed-dry-river: #94a3b8;
-  --watershed-fertile: #78350f;
-  --watershed-dry-soil: #fde68a;
-  --watershed-seed: #d97706;
-  --watershed-sprout: #86efac;
-  --watershed-tree: #15803d;
-  --watershed-disperser: #facc15;
-
-  /* Agentes Polinizadores */
-  --agent-wind: #67e8f9;
-  --agent-bee: #facc15;
-  --agent-bird: #fb923c;
-
-  /* Métricas Ambientais */
-  --metric-o2: #38bdf8;
-  --metric-co2: #34d399;
-  --warming-high: #ef4444;
-  --warming-neutral: #f59e0b;
-  --warming-low: #10b981;
+  /* Mapa (espelha CELL_COLORS em lib/constants.ts) */
+  --map-water: #1b6e8c;
+  --map-shallow: #7fb3c4;
+  --map-dry-river: #a7ae9f;
+  --map-wet-soil: #9c6934;
+  --map-dry-soil: #d6c49a;
+  --map-seed-ground: #aa7644;
+  --map-seed: #e6c27a;
+  --map-sprout: #6fa96b;
+  --map-tree: #2f5d3a;
+  --map-pollinator: #e0a526;
+  --map-rust: #b4472f;       /* seca crítica: barras e marcações, não texto */
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-surface-panel: var(--surface-panel);
-  --color-surface-card: var(--surface-card);
-  --color-surface-hover: var(--surface-hover);
-  --color-border-subtle: var(--border-subtle);
-  --color-border-active: var(--border-active);
-  --color-text-muted: var(--text-muted);
+  --color-mist: var(--mist);
+  --color-sage: var(--sage);
+  --color-frame: var(--frame);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-control-border: var(--control-border);
 
-  --color-grid-empty: var(--grid-empty);
-  --color-grid-lines: var(--grid-lines);
-  --color-grid-hover: var(--grid-hover);
+  --color-water-text: var(--water-text);
+  --color-soil-text: var(--soil-text);
+  --color-tree-text: var(--tree-text);
+  --color-rust-text: var(--rust-text);
 
-  --color-stage-seed: var(--stage-seed);
-  --color-stage-sprout: var(--stage-sprout);
-  --color-stage-mature: var(--stage-mature);
-  --color-stage-bloom: var(--stage-bloom);
+  --color-map-water: var(--map-water);
+  --color-map-shallow: var(--map-shallow);
+  --color-map-dry-river: var(--map-dry-river);
+  --color-map-wet-soil: var(--map-wet-soil);
+  --color-map-dry-soil: var(--map-dry-soil);
+  --color-map-seed-ground: var(--map-seed-ground);
+  --color-map-seed: var(--map-seed);
+  --color-map-sprout: var(--map-sprout);
+  --color-map-tree: var(--map-tree);
+  --color-map-pollinator: var(--map-pollinator);
+  --color-map-rust: var(--map-rust);
 
-  --color-agent-wind: var(--agent-wind);
-  --color-agent-bee: var(--agent-bee);
-  --color-agent-bird: var(--agent-bird);
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-condensed: var(--font-plex-condensed), var(--font-plex-sans), sans-serif;
 
-  --color-metric-o2: var(--metric-o2);
-  --color-metric-co2: var(--metric-co2);
-  --color-warming-high: var(--warming-high);
-  --color-warming-neutral: var(--warming-neutral);
-  --color-warming-low: var(--warming-low);
-
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Escala tipográfica: nada abaixo de 13px */
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.625rem;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.75rem;
+  --text-2xl--line-height: 2.125rem;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--mist);
+  color: var(--ink);
   min-height: 100vh;
+}
+
+/* Foco de teclado: contorno em tinta afastado 2px, visível sobre névoa,
+   sálvia e sobre o botão selecionado (fundo de tinta) */
+:where(button, a, input, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+input[type="range"] {
+  accent-color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

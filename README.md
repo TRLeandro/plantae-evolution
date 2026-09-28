@@ -3,7 +3,7 @@
 ## Objetivo
 Simulador de autômato celular ecológico que modela a dinâmica de uma **Bacia Hidrográfica protegida por Mata Ciliar**, com **Dispersão de Sementes por Polinizadores** e **Sazonalidade Climática Global (Ciclo de Estações: Cheia vs Estiagem)**.
 
-A simulação demonstra como o dossel florestal ripário projeta sombra e microclima estável, blindando o leito do rio contra a evaporação e o dessecamento durante a estiagem, enquanto polinizadores e dispersores regeneram as margens férteis.
+A simulação mostra como as árvores da margem do rio (a mata ciliar) evitam que ele seque na estiagem, e como os polinizadores ajudam a replantar as margens.
 
 ---
 
@@ -19,11 +19,13 @@ Abra seu navegador e acesse:
 http://localhost:3000
 
 ## Como funciona?
-- **Leito de Água e Difusão Hídrica**: O rio emite um raio hídrico ($R_{\text{água}}$ na métrica Chebyshev) que transforma o solo árido ao redor em solo fértil úmido.
-- **Mata Ciliar como Escudo Térmico**: Na estação de seca, trechos de rio com $\ge 3$ árvores adultas vizinhas têm **0% de evaporação** (leito preservado). Sem árvores, o rio evapora rapidamente e se transforma em leito seco assoreado.
-- **Germinação Seletiva**: Sementes que caem no solo fértil da margem germinam em brotos e amadurecem em árvores adultas. Sementes que caem no solo seco perecem após 15 ciclos.
-- **Polinizadores e Dispersores**: Agentes móveis colhem sementes nas árvores e as dispersam continuamente pelo mapa.
-- **Sazonalidade Climática**: Ciclo alternado entre **Estação Chuvosa (Cheia)** — com expansão hídrica e regeneração de leitos secos — e **Estação Seca (Estiagem)**.
+A simulação avança em **ticks**: a cada tick, todas as células do mapa são atualizadas ao mesmo tempo, seguindo as regras abaixo.
+
+- **Rio com água**: deixa úmida a terra em volta, até o *alcance da água no solo* escolhido (em células, contando as diagonais).
+- **Mata ciliar**: na estiagem, um trecho de rio com 3 árvores adultas ou mais nas 8 células em volta não seca. Com menos, ele pode secar a cada tick e vira *rio seco*.
+- **Sementes**: em terra úmida viram broto e depois árvore adulta. Em terra seca, morrem depois de 15 ticks.
+- **Polinizadores**: pegam sementes nas árvores e deixam cair em outros pontos do mapa.
+- **Estações**: a estação chuvosa e a estiagem se alternam. Na chuva, trechos de rio seco ao lado de água voltam a encher.
 
 ---
 
@@ -31,20 +33,26 @@ http://localhost:3000
 
 O usuário dispõe de um conjunto completo de ferramentas interativas para experimentar com o ecossistema:
 
-- **Pincéis Interativos (Desenho com mouse ou toque)**:
-  - 🌳 **Árvore**: Plantar mata ciliar madura diretamente na margem
-  - 🌱 **Semente**: Semeadura manual
-  - 🪓 **Desmatar**: Remover árvores/vegetação e observar o efeito térmico
-  - 💧 **Canal de Água**: Escavar ou expandir leitos de rio ativos
-  - 🏜️ **Secar Canal**: Simular dessecamento ou desvio de leito
-  - 🔍 **Inspecionar**: Consultar dados de microclima e número de árvores vizinhas
-- **Controle de Playback**: Iniciar, Pausar e Avançar Passo Único (tick a tick)
-- **Slider de Velocidade**: Ajuste de cadência de ticks por segundo
-- **Slider de Raio Hídrico ($R_{\text{água}}$)**: Controla a profundidade de penetração da umidade nas margens
-- **Cenários Predefinidos (Presets)**:
-  - 🏞️ **Mata Nativa Equilibrada**: Rio protegido por mata ciliar contínua que suporta a seca sem evaporar.
-  - 🏜️ **Bacia Degradada**: Margens desmatadas que secam e colapsam na estiagem.
-  - 🌿 **Restauração Ecológica**: Corredor em regeneração por dispersores bióticos.
+Os nomes abaixo são os mesmos que aparecem na tela.
+
+- **Pincel** (clique ou arraste no mapa, com mouse ou toque):
+  - **Árvore**: planta uma árvore adulta.
+  - **Semente**: deixa uma semente; ela só brota em terra úmida.
+  - **Desmatar**: tira árvores, brotos e sementes.
+  - **Rio**: abre um trecho de rio com água.
+  - **Secar rio**: seca um trecho de rio que tem água.
+  - **Terra seca**: troca o que houver na célula por terra seca.
+  - **Só olhar**: não muda nada; mostra na barra abaixo do mapa o que tem na célula (linha, coluna, estado, há quantos ticks).
+- **Reprodução**: Pausar / Continuar, **Avançar 1 tick** (com a simulação pausada) e Reiniciar.
+- **Ajustes**:
+  - **Quadros por tick**: quantos quadros de animação passam entre um tick e o seguinte (4 a 28). Numa tela de 60 quadros por segundo, 12 quadros por tick = 60 ÷ 12 = 5 ticks por segundo.
+  - **Alcance da água no solo**: até quantas células a partir do rio a terra fica úmida (1 a 4).
+  - **Polinizadores**: quantos polinizadores voam pelo mapa (0 a 30).
+- **Cenário**:
+  - **Mata preservada**: margens com mata fechada; o rio atravessa a seca sem perder água.
+  - **Margens desmatadas**: pouca árvore na beira do rio; na primeira seca, boa parte dele evapora.
+  - **Em recuperação**: restos de mata e alguns corredores; os polinizadores ajudam a replantar.
+  - **Terra seca**: mapa vazio, sem água nem plantas, para montar tudo do zero.
 
 ---
 
@@ -54,7 +62,7 @@ Cada espécie possui características próprias:
 
 | Característica | Descrição |
 |---|---|
-| Tempo de crescimento | Cada espécie tem seu próprio tempo (em ticks/frames) para evoluir de semente → crescendo → madura. Plantas maduras passam pelo ciclo de reprodução, onde alternam entre o estado maduro e estado de propagação (gerar esporos/flores/frutos). **O ciclo é infinito**: uma vez madura, a planta nunca morre e permanece alternando entre maduro/propagação indefinidamente |
+| Tempo de crescimento | Cada espécie tem seu próprio tempo (em ticks) para evoluir de semente → crescendo → madura. Plantas maduras passam pelo ciclo de reprodução, onde alternam entre o estado maduro e estado de propagação (gerar esporos/flores/frutos). **O ciclo é infinito**: uma vez madura, a planta nunca morre e permanece alternando entre maduro/propagação indefinidamente |
 | Reprodução de plantas | Cada espécie se reproduz de maneira própia, briófitas e pteridófitas que se reproduzem por esporos, gimnospermas por sementes, e angiospermas por flores e frutos
 | Agente polinizador | Cada espécie é associada a um tipo de agente polinizador responsável por sua propagação |
 
@@ -81,7 +89,7 @@ Vale igualmente para os três agentes (vento, abelhas e pássaros). Quando um ag
 
 ## Impacto ambiental
 
-- Cada célula com planta madura contribui para geração de **O2** e captura de **CO2**
+- Cada célula com planta madura contribui para a produção de **O2** e captura de **CO2**
 - A simulação deve visualizar esse impacto de forma acumulada (ex: contador ou gráfico simples) conforme a vegetação se espalha pela matriz
 - **Escopo atual**: é apenas um contador informativo/acumulado — sem gamificação, metas ou medidor de "aquecimento global" resolvido. Isso pode ser considerado em uma fase futura.
 
@@ -149,13 +157,13 @@ O layout visual detalhado desse card (tipografia, cores, composição) fica para
 
 - **Framework**: Next.js
 - **Estilização**: Tailwind CSS, com suporte a layout responsivo (menus minimizáveis no desktop, tab bar no mobile)
-- **Motor de simulação**: p5.js, em **modo instância**, integrado via `react-p5-wrapper` (ou import dinâmico client-side) para evitar conflito com o SSR do Next.js
+- **Motor de simulação**: Canvas 2D nativo em `components/SimulationCanvas.tsx`, com loop de `requestAnimationFrame` só no cliente; regras em `lib/engine.ts`. (O motor p5.js antigo, `lib/sketch.ts`, só existe por causa dos testes.)
 - **Estrutura de dados**:
   - Grid representado como matriz de objetos (`{ estado, tipoPlanta, idade }`)
   - Polinizadores representados como lista de agentes com posição e regra de movimento própria
 - **Sincronização p5.js ↔ React**:
   - O `draw()` do p5 roda fora do ciclo de renderização do React (~60fps) — não deve disparar `setState` a cada frame
   - Os totais de O2/CO2 são acumulados internamente durante a simulação e sincronizados com o estado do React a cada N frames (ex: 1x por segundo), evitando re-renders excessivos do painel de impacto
-  - A velocidade do jogo é controlada por um contador de ticks lógicos (quantos frames se passam entre cada avanço da simulação), não pelo `frameRate()` do p5
+  - A velocidade é controlada por um contador de ticks lógicos: **quadros por tick** (quantos quadros de animação se passam entre um tick e o seguinte), não pela taxa de quadros da tela
 
 ---
