@@ -17,30 +17,47 @@ Público: banca avaliando um trabalho acadêmico e curiosos. Legibilidade vem an
 
 ## Layout
 
-Um contêiner centralizado de **até 1400px** (`mx-auto max-w-[1400px]`) com as duas áreas de cor lado a lado dentro dele:
+Uma **coluna única centrada** (`max-w-5xl mx-auto`, até 64rem) com o canvas como protagonista. Todo o conteúdo secundário fica num **drawer lateral** revelado por botão.
 
 ```
-      ┌──────────────── contêiner centralizado, até 1400px ────────────────┐
-névoa │ névoa (até 48rem)                    │ sálvia (o resto, mín. 22rem) │ sálvia
- ...  │ Título + 2 frases                    │ Como está a bacia (4)        │ ...
-      │ Estação ...... [Pausar][+1][Reinic.] │ Cenário                      │
-      │ Pincel [7 botões]                    │ Ajustes (3 sliders)          │
-      │ ┏━━━━━━━ moldura ━━━━━━━┓            │ Como funciona (2)            │
-      │ ┃   1   5   10 ... 30   ┃            │                              │
-      │ ┃ 1 ┌───────────────┐   ┃            │                              │
-      │ ┃ 5 │     mapa      │   ┃            │                              │
-      │ ┃   └───────────────┘   ┃            │                              │
-      │ ┃   escala, inspeção,   ┃            │                              │
-      │ ┃   legenda             ┃            │                              │
-      │ ┗━━━━━━━━━━━━━━━━━━━━━━━┛            │                              │
-      └──────────────────────────────────────┴──────────────────────────────┘
+       ┌────────────────── coluna centrada, até 64rem ──────────────────┐
+       │ Título + descrição                                  [Ajustes] │
+       │ Estação ...... [Pausar][+1][Reiniciar]                        │
+       │ Pincel [7 botões]                                             │
+       │ ┏━━━━━━━━━━━━━━━━━━━ moldura ━━━━━━━━━━━━━━━━━━━━┓            │
+       │ ┃   1   5   10  15  20  25  30                    ┃            │
+       │ ┃ 1 ┌──────────────────────────────────┐          ┃            │
+       │ ┃ 5 │          CANVAS (4:3)            │          ┃            │
+       │ ┃10 │                                  │          ┃            │
+       │ ┃15 │                                  │          ┃            │
+       │ ┃20 └──────────────────────────────────┘          ┃            │
+       │ ┃   escala, inspeção                              ┃            │
+       │ ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛            │
+       │ Legenda  Rio com água: …  Terra: …  Árvore: …                 │
+       └───────────────────────────────────────────────────────────────-┘
+
+                                                    ┌── Drawer (aberto) ──┐
+                                                    │ Configurações     ✕  │
+                                                    │ Como está a bacia    │
+                                                    │ Cenário              │
+                                                    │ Ajustes (sliders)    │
+                                                    │ Como funciona        │
+                                                    └──────────────────────┘
 ```
 
-- A partir de `lg`: grid `[minmax(0,48rem) | minmax(22rem,1fr)]`. A névoa nunca passa de 48rem (o canvas fica com exatamente 640px); **quem cresce em tela larga é a sálvia**, para não abrir vazio dentro da névoa.
-- O **conteúdo** fica sempre no contêiner. Só o **fundo** sangra: a névoa vem do `body`; a sálvia se estende até a borda direita da janela por um `::after` no `<aside>` (o wrapper externo tem `overflow-x: clip`).
-- Critério verificado: em nenhuma largura existe faixa sem conteúdo maior que a coluna de sálvia. Medido: 1280 → 32px, 1440 → 52px, 1920 → 292px, 2560 → 612px, com a sálvia em 512–632px.
-- No mobile: tudo empilha (névoa, depois sálvia). A moldura encosta nas bordas da tela para o mapa ganhar largura; o texto dentro dela mantém 16px de margem.
-- Pincéis ficam sempre logo acima do mapa: pintar é a interação principal.
+- O canvas ocupa o máximo da largura disponível na coluna centrada.
+- Pincéis ficam sempre logo acima do mapa. Legenda fica logo abaixo, fora da moldura.
+- No mobile: tudo empilha, a moldura encosta nas bordas da tela. O drawer sobe como bottom sheet (~70vh).
+- O botão "Ajustes" no header abre o drawer. A simulação **nunca** pausa ao abrir.
+
+### Drawer
+
+- Desktop (≥ `lg`): lateral direita, largura `22rem`, fundo `sage`, borda esquerda `line`. Desliza com `transition-transform duration-300`.
+- Mobile (< `lg`): bottom sheet (`inset-x-0 bottom-0`, `max-h-[70vh]`, arredondado no topo).
+- Sem overlay escuro — o canvas fica visível e rodando.
+- Fecha com botão ✕, tecla Escape ou clique fora.
+- `role="dialog"`, `aria-modal="true"`, `aria-label`.
+- Conteúdo: StatsCard, ScenarioPicker, SimulationSettings, "Como funciona".
 
 ## Cores
 

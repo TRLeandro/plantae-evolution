@@ -79,12 +79,63 @@ export const BRUSHES: Array<{ id: BrushTool; label: string; hint: string; symbol
 export function BrushPicker({
   activeBrush,
   onSelectBrush,
+  variant = 'default',
 }: {
   activeBrush: BrushTool;
   onSelectBrush: (brush: BrushTool) => void;
+  variant?: 'default' | 'sidebar' | 'toolbar';
 }) {
   const active = BRUSHES.find((b) => b.id === activeBrush);
 
+  // Sidebar: coluna vertical compacta (desktop, lado esquerdo do mapa)
+  if (variant === 'sidebar') {
+    return (
+      <nav role="group" aria-label="Pincel" className="flex flex-col gap-1">
+        {BRUSHES.map((b) => {
+          const isSelected = activeBrush === b.id;
+          return (
+            <button
+              key={b.id}
+              type="button"
+              aria-pressed={isSelected}
+              title={b.hint}
+              onClick={() => onSelectBrush(b.id)}
+              className={`${buttonBase} ${isSelected ? buttonSelected : buttonIdle} gap-2 px-2 py-1.5 text-xs justify-start`}
+            >
+              <MapSymbol kind={b.symbol} size={14} />
+              <span>{b.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+    );
+  }
+
+  // Toolbar: faixa horizontal compacta (mobile, barra fixa no rodapé)
+  if (variant === 'toolbar') {
+    return (
+      <nav role="group" aria-label="Pincel" className="flex items-stretch gap-1">
+        {BRUSHES.map((b) => {
+          const isSelected = activeBrush === b.id;
+          return (
+            <button
+              key={b.id}
+              type="button"
+              aria-pressed={isSelected}
+              title={b.hint}
+              onClick={() => onSelectBrush(b.id)}
+              className={`${buttonBase} ${isSelected ? buttonSelected : buttonIdle} flex-1 flex-col gap-0.5 px-0.5 py-1.5 text-xs min-w-0`}
+            >
+              <MapSymbol kind={b.symbol} size={14} />
+              <span className="truncate">{b.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+    );
+  }
+
+  // Default: grade completa com título e descrição
   return (
     <div role="group" aria-labelledby="brush-heading">
       <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">

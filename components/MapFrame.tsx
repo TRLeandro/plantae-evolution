@@ -3,7 +3,7 @@
 /**
  * MapFrame — a "folha" do mapa, como numa carta impressa:
  * moldura em tinta, marcas de coluna (topo) e linha (esquerda) na margem,
- * barra de escala, barra de inspeção e legenda compacta dentro da moldura.
+ * barra de escala e barra de inspeção. A legenda ficou em LegendStrip.tsx.
  *
  * As marcas usam a mesma numeração da barra de inspeção (a partir de 1).
  */
@@ -11,7 +11,7 @@
 import type { ReactNode } from 'react';
 import { Cell, CellState, GridCoord } from '@/lib/types';
 import { GRID_COLS, GRID_ROWS } from '@/lib/constants';
-import MapSymbol, { MapSymbolKind } from '@/components/MapSymbol';
+import MapSymbol from '@/components/MapSymbol';
 
 export const CELL_LABEL: Record<CellState, string> = {
   [CellState.LEITO_AGUA]: 'Rio com água',
@@ -23,16 +23,7 @@ export const CELL_LABEL: Record<CellState, string> = {
   [CellState.ARVORE_ADULTA]: 'Árvore adulta',
 };
 
-const LEGEND: Array<{ kind: MapSymbolKind; label: string; text: string }> = [
-  { kind: CellState.LEITO_AGUA, label: 'Rio com água', text: 'molha a terra em volta' },
-  { kind: CellState.LEITO_SECO, label: 'Rio seco', text: 'evaporou na estiagem' },
-  { kind: CellState.SOLO_FERTIL, label: 'Terra úmida', text: 'sementes brotam aqui' },
-  { kind: CellState.SOLO_SECO, label: 'Terra seca', text: 'sementes não brotam aqui' },
-  { kind: CellState.SEMENTE, label: 'Semente', text: 'vira broto em terra úmida' },
-  { kind: CellState.BROTO, label: 'Broto', text: 'cresce até virar árvore' },
-  { kind: CellState.ARVORE_ADULTA, label: 'Árvore adulta', text: '3 ou mais seguram o rio' },
-  { kind: 'pollinator', label: 'Polinizador', text: 'leva sementes pelo mapa' },
-];
+// A legenda foi extraída para components/LegendStrip.tsx
 
 // Marcas na margem só nas posições numeradas: a primeira e as múltiplas de 5
 const isLabeled = (n: number) => n === 1 || n % 5 === 0;
@@ -131,21 +122,6 @@ export default function MapFrame({
         )}
       </p>
 
-      {/* Legenda */}
-      <figcaption className="mt-3 border-t border-line px-2 pt-3 sm:px-0">
-        <h2 className="mb-2 text-sm font-semibold">Legenda</h2>
-        <ul className="grid grid-cols-1 gap-x-6 gap-y-1 font-condensed text-sm sm:grid-cols-2">
-          {LEGEND.map((item) => (
-            <li key={item.label} className="flex items-center gap-2">
-              <MapSymbol kind={item.kind} size={16} className="text-ink" />
-              <span>
-                <span className="font-medium">{item.label}:</span>{' '}
-                <span className="text-ink-muted">{item.text}</span>
-              </span>
-            </li>
-          ))}
-        </ul>
-      </figcaption>
     </figure>
   );
 }

@@ -2,7 +2,8 @@
 
 /**
  * SeasonIndicator — estação atual, quanto dela já passou e o que ela
- * muda no rio. Fica logo acima do mapa, ao lado dos controles de reprodução.
+ * muda no rio. Em modo `compact` (barra fixa no topo), fica tudo numa
+ * linha só, sem a descrição.
  */
 
 import type { ReactNode } from 'react';
@@ -14,6 +15,8 @@ interface SeasonIndicatorProps {
   totalTicks: number;
   /** Controles exibidos à direita do nome da estação */
   actions?: ReactNode;
+  /** Em modo compacto, esconde a descrição e mostra tudo numa linha */
+  compact?: boolean;
 }
 
 export default function SeasonIndicator({
@@ -21,17 +24,51 @@ export default function SeasonIndicator({
   progress,
   totalTicks,
   actions,
+  compact = false,
 }: SeasonIndicatorProps) {
   const isRain = season === ClimateSeason.CHUVOSA;
+  const colorClass = isRain ? 'text-water-text' : 'text-soil-text';
+  const barColor = isRain ? 'bg-map-water' : 'bg-map-wet-soil';
+  const label = isRain ? 'Estação chuvosa' : 'Estiagem';
+
+  if (compact) {
+    return (
+      <section aria-labelledby="season-heading" className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <h2
+          id="season-heading"
+          className={`text-sm font-semibold shrink-0 ${colorClass}`}
+        >
+          {label}
+        </h2>
+        <div
+          role="progressbar"
+          aria-label="Quanto da estação já passou"
+          aria-valuenow={progress}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          className="h-1.5 min-w-16 flex-1 bg-line"
+        >
+          <div
+            className={`h-full transition-[width] duration-300 ${barColor}`}
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <span className="shrink-0 text-xs text-ink-muted tabular-nums">
+          {progress}% · tick {totalTicks}
+        </span>
+        {actions}
+      </section>
+    );
+  }
 
   return (
     <section aria-labelledby="season-heading">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2
           id="season-heading"
-          className={`text-xl font-semibold ${isRain ? 'text-water-text' : 'text-soil-text'}`}
+          className={`text-xl font-semibold ${colorClass}`}
         >
-          {isRain ? 'Estação chuvosa' : 'Estiagem'}
+          {label}
         </h2>
         {actions}
       </div>
@@ -52,7 +89,7 @@ export default function SeasonIndicator({
           className="h-2 flex-1 bg-line"
         >
           <div
-            className={`h-full transition-[width] duration-300 ${isRain ? 'bg-map-water' : 'bg-map-wet-soil'}`}
+            className={`h-full transition-[width] duration-300 ${barColor}`}
             style={{ width: `${progress}%` }}
           />
         </div>

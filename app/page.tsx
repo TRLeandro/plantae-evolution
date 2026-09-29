@@ -3,12 +3,10 @@
 /**
  * Plantae Evolution — Bacia Hidrográfica, Mata Ciliar e Estações
  *
- * Layout: contêiner centralizado de até 1400px com duas áreas de cor que
- * se encostam (névoa até 48rem, sálvia com o resto):
- * - névoa: título, estação + reprodução, pincéis e a moldura do mapa
- *   (com marcas de linha/coluna, escala, inspeção e legenda);
- * - sálvia: números da bacia, cenário, ajustes e regras.
- * No mobile as duas empilham nessa ordem. Ver DESIGN.md.
+ * Layout: coluna única centrada (max-w-5xl) com o canvas como protagonista.
+ * Todo o conteúdo secundário (stats, cenários, ajustes, regras) fica num
+ * drawer lateral revelado por botão, sem pausar a simulação. Pincéis e legenda
+ * ficam perto do mapa, sempre visíveis. Ver DESIGN.md.
  */
 
 import { useState, useCallback } from 'react';
@@ -29,6 +27,8 @@ import {
 } from '@/components/ControlBar';
 import StatsCard from '@/components/StatsCard';
 import MapFrame, { InspectedCell } from '@/components/MapFrame';
+import LegendStrip from '@/components/LegendStrip';
+import SettingsDrawer from '@/components/SettingsDrawer';
 
 export default function Home() {
   // Estados de Execução e Parâmetros da Simulação
@@ -40,6 +40,9 @@ export default function Home() {
   const [activePresetId, setActivePresetId] = useState<string>('balanced');
   const [stepTrigger, setStepTrigger] = useState<number>(0);
   const [resetTrigger, setResetTrigger] = useState<number>(0);
+
+  // Drawer de configurações
+  const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
 
   // Métricas em Tempo Real sincronizadas com throttle do Canvas
   const [metrics, setMetrics] = useState<SimulationMetrics>({
@@ -108,39 +111,69 @@ export default function Home() {
   );
 
   return (
-    // Fundo: a névoa vem do body; a sálvia se estende até a borda direita da
-    // janela pelo ::after do <aside>. O conteúdo fica sempre no contêiner
-    // centralizado de 1400px.
-    <div className="overflow-x-clip">
-      <div className="mx-auto min-h-screen max-w-[1400px] lg:grid lg:grid-cols-[minmax(0,48rem)_minmax(22rem,1fr)]">
-        {/* Área do mapa (névoa) */}
-        <main className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          <div className="mx-auto max-w-[44rem] space-y-4">
-            <header className="max-w-prose pb-2">
-              <h1 className="text-2xl font-semibold">Bacia hidrográfica e mata ciliar</h1>
-              <p className="mt-2 text-ink-muted">
-                Um rio atravessa o mapa, e na estiagem os trechos com poucas árvores por perto secam.
-                Use os pincéis para plantar, desmatar ou abrir o rio e veja o que acontece na próxima
-                seca.
-              </p>
-            </header>
+    <>
+      {/* Botão fixo na borda direita — sempre visível, abre/fecha o drawer */}
+      <button
+        type="button"
+        onClick={() => setDrawerOpen((prev) => !prev)}
+        className="fixed right-0 top-1/2 z-40 -translate-y-1/2 flex items-center justify-center rounded-l-sm border border-r-0 border-control-border bg-frame px-2 py-4 text-ink hover:bg-sage cursor-pointer active:translate-y-px"
+        aria-label={drawerOpen ? 'Fechar configurações' : 'Abrir configurações'}
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M6.86 1.5h2.28l.36 1.8.9.38 1.56-.96 1.62 1.62-.96 1.56.38.9 1.8.36v2.28l-1.8.36-.38.9.96 1.56-1.62 1.62-1.56-.96-.9.38-.36 1.8H6.86l-.36-1.8-.9-.38-1.56.96-1.62-1.62.96-1.56-.38-.9-1.8-.36V6.86l1.8-.36.9-.38-.96-1.56L5.56 3l1.56.96.9-.38z" />
+          <circle cx="8" cy="8" r="2" />
+        </svg>
+      </button>
 
-            <SeasonIndicator
-              season={metrics.currentSeason}
-              progress={metrics.seasonProgress}
-              totalTicks={metrics.totalTicks}
-              actions={
-                <PlaybackControls
-                  running={running}
-                  onTogglePlay={handleTogglePlay}
-                  onStep={handleStep}
-                  onReset={handleReset}
-                />
-              }
-            />
+      {/* Barra fixa no topo — só estação + controles de reprodução */}
+      <div className="sticky top-0 z-30 border-b border-line bg-mist">
+        <div className="mx-auto max-w-5xl px-4 py-2 sm:px-6 lg:px-8">
+          <SeasonIndicator
+            compact
+            season={metrics.currentSeason}
+            progress={metrics.seasonProgress}
+            totalTicks={metrics.totalTicks}
+            actions={
+              <PlaybackControls
+                running={running}
+                onTogglePlay={handleTogglePlay}
+                onStep={handleStep}
+                onReset={handleReset}
+              />
+            }
+          />
+        </div>
+      </div>
 
-            <BrushPicker activeBrush={activeBrush} onSelectBrush={setActiveBrush} />
+      {/* Conteúdo principal — pb-20 no mobile para a toolbar de pincéis não cobrir */}
+      <div className="mx-auto max-w-5xl px-4 py-6 pb-24 sm:px-6 lg:px-8 lg:py-8 lg:pb-8">
+        <header className="max-w-prose">
+          <h1 className="text-2xl font-semibold">Bacia hidrográfica e mata ciliar</h1>
+          <p className="mt-2 text-ink-muted">
+            Um rio atravessa o mapa, e na estiagem os trechos com poucas árvores por perto secam.
+            Use os pincéis para plantar, desmatar ou abrir o rio e veja o que acontece na próxima
+            seca.
+          </p>
+        </header>
 
+        {/* Desktop: grid com sidebar de pincéis à esquerda + mapa à direita */}
+        <div className="mt-4 lg:grid lg:grid-cols-[auto_1fr] lg:gap-4 lg:items-start">
+          {/* Sidebar esquerda — pincéis (só desktop) */}
+          <aside className="hidden lg:sticky lg:top-14 lg:block lg:self-start">
+            <BrushPicker variant="sidebar" activeBrush={activeBrush} onSelectBrush={setActiveBrush} />
+          </aside>
+
+          <div className="space-y-4">
             <MapFrame inspected={inspectedCell}>
               <SimulationCanvas
                 activePresetId={activePresetId}
@@ -157,47 +190,52 @@ export default function Home() {
               />
             </MapFrame>
 
+            <LegendStrip />
+
             <p className="text-xs text-ink-muted">
               Grade de 32 colunas por 24 linhas. A cada tick, todas as células mudam ao mesmo
               tempo.
             </p>
           </div>
-        </main>
-
-        {/* Área de apoio (sálvia) */}
-        <aside className="relative border-t border-line bg-sage px-4 py-6 sm:px-6 lg:border-t-0 lg:border-l lg:px-8 lg:py-8 lg:after:absolute lg:after:inset-y-0 lg:after:left-full lg:after:w-screen lg:after:bg-sage">
-          <div className="mx-auto max-w-[44rem] space-y-8 lg:mx-0 lg:max-w-[36rem]">
-            <StatsCard metrics={metrics} />
-
-            <ScenarioPicker activePresetId={activePresetId} onSelectPreset={handleSelectPreset} />
-
-            <SimulationSettings
-              speed={speed}
-              onSpeedChange={handleSpeedChange}
-              waterRadius={waterRadius}
-              onWaterRadiusChange={handleWaterRadiusChange}
-              disperserCount={disperserCount}
-              onDisperserCountChange={handleDisperserCountChange}
-            />
-
-            <section aria-labelledby="rules-heading">
-              <h2 id="rules-heading" className="mb-2 text-base font-semibold">
-                Como funciona
-              </h2>
-              <ul className="list-disc space-y-2 pl-5 text-sm text-ink-muted">
-                <li>
-                  Na estiagem, um trecho de rio com menos de 3 árvores adultas nas 8 células em volta
-                  pode secar a cada tick. Na chuva, trechos secos ao lado de água voltam a encher.
-                </li>
-                <li>
-                  Sementes em terra úmida viram broto e depois árvore. Em terra seca, morrem depois de
-                  15 ticks.
-                </li>
-              </ul>
-            </section>
-          </div>
-        </aside>
+        </div>
       </div>
-    </div>
+
+      {/* Toolbar de pincéis fixa no rodapé — só mobile */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-mist px-2 py-2 lg:hidden">
+        <BrushPicker variant="toolbar" activeBrush={activeBrush} onSelectBrush={setActiveBrush} />
+      </div>
+
+      {/* Drawer de configurações — a simulação continua rodando enquanto está aberto */}
+      <SettingsDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+        <StatsCard metrics={metrics} />
+
+        <ScenarioPicker activePresetId={activePresetId} onSelectPreset={handleSelectPreset} />
+
+        <SimulationSettings
+          speed={speed}
+          onSpeedChange={handleSpeedChange}
+          waterRadius={waterRadius}
+          onWaterRadiusChange={handleWaterRadiusChange}
+          disperserCount={disperserCount}
+          onDisperserCountChange={handleDisperserCountChange}
+        />
+
+        <section aria-labelledby="rules-heading">
+          <h2 id="rules-heading" className="mb-2 text-base font-semibold">
+            Como funciona
+          </h2>
+          <ul className="list-disc space-y-2 pl-5 text-sm text-ink-muted">
+            <li>
+              Na estiagem, um trecho de rio com menos de 3 árvores adultas nas 8 células em volta
+              pode secar a cada tick. Na chuva, trechos secos ao lado de água voltam a encher.
+            </li>
+            <li>
+              Sementes em terra úmida viram broto e depois árvore. Em terra seca, morrem depois de
+              15 ticks.
+            </li>
+          </ul>
+        </section>
+      </SettingsDrawer>
+    </>
   );
 }

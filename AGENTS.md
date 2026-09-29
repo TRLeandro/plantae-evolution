@@ -35,17 +35,18 @@ Guia de contexto, arquitetura, regras de domínio e convenções técnicas para 
 ## 3. Arquitetura da Aplicação & Sincronização
 
 ### 3.1 Layout (`app/page.tsx`)
-Um contêiner centralizado de até 1400px (`mx-auto max-w-[1400px]`) com duas áreas de cor lado a lado; a partir de `lg`, grid `[minmax(0,48rem) | minmax(22rem,1fr)]` (em tela larga quem cresce é a sálvia). O conteúdo fica sempre no contêiner; só o fundo da sálvia se estende até a borda direita da janela (`::after` no `<aside>`). No mobile as áreas empilham nessa ordem:
+Uma coluna única centrada (`max-w-5xl mx-auto`, até 64rem) com o canvas como protagonista. O conteúdo secundário fica num **drawer lateral** (`components/SettingsDrawer.tsx`) revelado por um botão "Ajustes" no header. A simulação nunca pausa ao abrir o drawer. O layout de dentro da coluna, de cima para baixo:
 
-1. **Área de névoa** (protagonista, até `48rem`):
-   - Título e duas frases de abertura.
-   - `SeasonIndicator`: estação, efeito dela no rio, barra de progresso. Recebe `PlaybackControls` (Pausar/Continuar, Avançar 1 tick, Reiniciar) via prop `actions`.
-   - `BrushPicker`: os 7 pincéis, **logo acima do mapa** em qualquer largura.
-   - `MapFrame`: moldura de carta em volta do `SimulationCanvas`, com marcas de linha/coluna na margem, barra de escala, barra de inspeção e a legenda (8 itens).
-   - Uma linha com o tamanho da grade, como a escala de uma carta.
-2. **Área de sálvia** (apoio): `StatsCard` (4 números), `ScenarioPicker` (4 cenários), `SimulationSettings` (quadros por tick, alcance da água, polinizadores) e "Como funciona" (2 itens).
+1. **Header:** Título, descrição curta e botão de abrir o drawer (ícone de engrenagem SVG).
+2. **`SeasonIndicator`:** estação, efeito no rio, barra de progresso. Recebe `PlaybackControls` (Pausar/Continuar, Avançar 1 tick, Reiniciar) via prop `actions`.
+3. **`BrushPicker`:** os 7 pincéis, logo acima do mapa.
+4. **`MapFrame`:** moldura de carta em volta do `SimulationCanvas`, com marcas de linha/coluna, escala e inspeção.
+5. **`LegendStrip`:** legenda compacta horizontal (8 itens), fora da moldura, logo abaixo.
+6. Nota sobre o tamanho da grade.
 
-`BrushPicker`, `PlaybackControls`, `ScenarioPicker` e `SimulationSettings` são exports nomeados de `components/ControlBar.tsx`. A ilustração de dentro das células (árvore, broto, semente, água, terra, polinizador) fica em `components/cellArt.ts` e é usada tanto pelo canvas quanto por `components/MapSymbol.tsx` (legenda, pincéis, inspeção). Regras e limites dessa ilustração em `DESIGN.md` › "Dentro da célula do mapa". Não existem `ConfigPanel` nem `ImpactPanel`.
+**Drawer** (`SettingsDrawer`): desktop (≥ `lg`) desliza pela direita com 22rem; mobile (< `lg`) sobe como bottom sheet até 70vh. Conteúdo: `StatsCard` (4 números), `ScenarioPicker` (4 cenários), `SimulationSettings` (3 sliders) e "Como funciona" (2 itens).
+
+`BrushPicker`, `PlaybackControls`, `ScenarioPicker` e `SimulationSettings` são exports nomeados de `components/ControlBar.tsx`. `LegendStrip` é export default de `components/LegendStrip.tsx`. `SettingsDrawer` é export default de `components/SettingsDrawer.tsx`. A ilustração de dentro das células fica em `components/cellArt.ts` e é usada tanto pelo canvas quanto por `components/MapSymbol.tsx` (legenda, pincéis, inspeção). Regras e limites dessa ilustração em `DESIGN.md` › "Dentro da célula do mapa". Não existem `ConfigPanel` nem `ImpactPanel`.
 
 ### 3.2 Gerenciamento de Estado
 - O estado de controle e métricas reside primariamente no componente pai (`app/page.tsx`) e é propagado via `props` para os painéis.
