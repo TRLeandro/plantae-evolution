@@ -1,24 +1,21 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, IBM_Plex_Sans_Condensed } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const plexSans = IBM_Plex_Sans({
-  variable: "--font-plex-sans",
+const geistSans = Geist({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
 });
 
-// Só para legenda e rótulos do mapa (ver DESIGN.md)
-const plexCondensed = IBM_Plex_Sans_Condensed({
-  variable: "--font-plex-condensed",
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
   subsets: ["latin"],
-  weight: ["400", "500"],
 });
 
 export const metadata: Metadata = {
-  title: "Bacia hidrográfica e mata ciliar — Plantae Evolution",
+  title: "Plantae Evolution 🌱",
   description:
-    "Simulação de um rio e da mata ciliar ao longo das estações: veja como as árvores da margem evitam que o rio seque.",
+    "Simulação de autômato celular interativo para o ciclo de vida e dispersão biológica de espécies vegetais.",
 };
 
 export default function RootLayout({
@@ -28,10 +25,10 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="pt-BR"
-      className={`${plexSans.variable} ${plexCondensed.variable} h-full antialiased`}
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
 }

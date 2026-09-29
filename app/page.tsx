@@ -1,203 +1,74 @@
 'use client';
 
-/**
- * Plantae Evolution — Bacia Hidrográfica, Mata Ciliar e Estações
- *
- * Layout: contêiner centralizado de até 1400px com duas áreas de cor que
- * se encostam (névoa até 48rem, sálvia com o resto):
- * - névoa: título, estação + reprodução, pincéis e a moldura do mapa
- *   (com marcas de linha/coluna, escala, inspeção e legenda);
- * - sálvia: números da bacia, cenário, ajustes e regras.
- * No mobile as duas empilham nessa ordem. Ver DESIGN.md.
- */
-
-import { useState, useCallback } from 'react';
-import {
-  Cell,
-  GridCoord,
-  SimulationMetrics,
-  BrushTool,
-  ClimateSeason,
-} from '@/lib/types';
+import { useState } from 'react';
 import SimulationCanvas from '@/components/SimulationCanvas';
-import SeasonIndicator from '@/components/SeasonIndicator';
-import {
-  BrushPicker,
-  PlaybackControls,
-  ScenarioPicker,
-  SimulationSettings,
-} from '@/components/ControlBar';
-import StatsCard from '@/components/StatsCard';
-import MapFrame, { InspectedCell } from '@/components/MapFrame';
+import type { Cell, GridCoord } from '@/types/simulation';
+
+interface ClickLog {
+  coord: GridCoord;
+  cell: Cell;
+  timestamp: string;
+}
 
 export default function Home() {
-  // Estados de Execução e Parâmetros da Simulação
-  const [running, setRunning] = useState<boolean>(true);
-  const [speed, setSpeed] = useState<number>(12); // Quadros por tick
-  const [waterRadius, setWaterRadius] = useState<number>(2);
-  const [disperserCount, setDisperserCount] = useState<number>(10);
-  const [activeBrush, setActiveBrush] = useState<BrushTool>('plant_tree');
-  const [activePresetId, setActivePresetId] = useState<string>('balanced');
-  const [stepTrigger, setStepTrigger] = useState<number>(0);
-  const [resetTrigger, setResetTrigger] = useState<number>(0);
+  const [lastClick, setLastClick] = useState<ClickLog | null>(null);
+  const [clickCount, setClickCount] = useState<number>(0);
 
-  // Métricas em Tempo Real sincronizadas com throttle do Canvas
-  const [metrics, setMetrics] = useState<SimulationMetrics>({
-    totalRiverCells: 32,
-    activeRiverCells: 32,
-    dryRiverCells: 0,
-    riverPreservationPct: 100,
-    adultTreeCount: 65,
-    sproutCount: 0,
-    seedCount: 0,
-    riparianDensityPct: 100,
-    totalSeedsDropped: 0,
-    seedsGerminated: 0,
-    seedsLost: 0,
-    effectiveGerminationRate: 100,
-    currentSeason: ClimateSeason.CHUVOSA,
-    seasonProgress: 0,
-    totalTicks: 0,
-  });
-
-  // Inspeção da célula sob o cursor
-  const [inspectedCell, setInspectedCell] = useState<InspectedCell | null>(null);
-
-  // Handlers de Ações
-  const handleTogglePlay = useCallback(() => {
-    setRunning((prev) => !prev);
-  }, []);
-
-  const handleStep = useCallback(() => {
-    setStepTrigger((prev) => prev + 1);
-  }, []);
-
-  const handleReset = useCallback(() => {
-    setResetTrigger((prev) => prev + 1);
-  }, []);
-
-  const handleSelectPreset = useCallback((presetId: string) => {
-    setActivePresetId(presetId);
-  }, []);
-
-  const handleSpeedChange = useCallback((newSpeed: number) => {
-    setSpeed(newSpeed);
-  }, []);
-
-  const handleWaterRadiusChange = useCallback((newRadius: number) => {
-    setWaterRadius(newRadius);
-  }, []);
-
-  const handleDisperserCountChange = useCallback((newCount: number) => {
-    setDisperserCount(newCount);
-  }, []);
-
-  const handleMetricsUpdate = useCallback((newMetrics: SimulationMetrics) => {
-    setMetrics(newMetrics);
-  }, []);
-
-  const handleCellHover = useCallback(
-    (coord: GridCoord | null, cell: Cell | null, neighborTrees: number) => {
-      if (!coord || !cell) {
-        setInspectedCell(null);
-        return;
-      }
-      setInspectedCell({ coord, cell, neighborTrees });
-    },
-    [],
-  );
+  const handleCellClick = (coord: GridCoord, cell: Cell) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setLastClick({ coord, cell, timestamp });
+    setClickCount((prev) => prev + 1);
+    console.log(
+      `[Plantae Evolution] Clique registrado -> Linha: ${coord.row}, Coluna: ${coord.col} (Estado: ${cell.estado})`,
+    );
+  };
 
   return (
-    // Fundo: a névoa vem do body; a sálvia se estende até a borda direita da
-    // janela pelo ::after do <aside>. O conteúdo fica sempre no contêiner
-    // centralizado de 1400px.
-    <div className="overflow-x-clip">
-      <div className="mx-auto min-h-screen max-w-[1400px] lg:grid lg:grid-cols-[minmax(0,48rem)_minmax(22rem,1fr)]">
-        {/* Área do mapa (névoa) */}
-        <main className="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          <div className="mx-auto max-w-[44rem] space-y-4">
-            <header className="max-w-prose pb-2">
-              <h1 className="text-2xl font-semibold">Bacia hidrográfica e mata ciliar</h1>
-              <p className="mt-2 text-ink-muted">
-                Um rio atravessa o mapa, e na estiagem os trechos com poucas árvores por perto secam.
-                Use os pincéis para plantar, desmatar ou abrir o rio e veja o que acontece na próxima
-                seca.
-              </p>
-            </header>
+    <main className="flex min-h-screen flex-col items-center justify-center p-3 sm:p-6 md:p-8 gap-4 sm:gap-6 bg-background text-foreground max-w-full overflow-x-hidden">
+      {/* Header */}
+      <header className="text-center space-y-1 px-2">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center justify-center gap-2">
+          <span>Plantae Evolution</span>
+          <span className="text-lg sm:text-xl">🌱</span>
+        </h1>
+        <p className="text-xs sm:text-sm text-text-muted max-w-xs sm:max-w-md mx-auto">
+          Canvas interativo do autômato celular com detecção de toque e clique
+        </p>
+      </header>
 
-            <SeasonIndicator
-              season={metrics.currentSeason}
-              progress={metrics.seasonProgress}
-              totalTicks={metrics.totalTicks}
-              actions={
-                <PlaybackControls
-                  running={running}
-                  onTogglePlay={handleTogglePlay}
-                  onStep={handleStep}
-                  onReset={handleReset}
-                />
-              }
-            />
+      {/* Canvas Central */}
+      <div className="w-full max-w-[640px] flex flex-col items-center gap-3 px-1 sm:px-0">
+        <SimulationCanvas onCellClick={handleCellClick} />
 
-            <BrushPicker activeBrush={activeBrush} onSelectBrush={setActiveBrush} />
+        {/* Painel de Coordenadas e Registro de Clique */}
+        <div className="w-full flex flex-col sm:flex-row items-center sm:justify-between gap-2.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg bg-surface-card border border-border-subtle text-xs sm:text-sm shadow-sm transition-all">
+          {lastClick ? (
+            <div className="w-full sm:w-auto flex flex-wrap items-center justify-center sm:justify-start gap-2 sm:gap-4 text-center sm:text-left">
+              <span className="inline-flex items-center gap-1.5 font-medium text-border-active shrink-0">
+                <span className="w-2 h-2 rounded-full bg-border-active animate-ping" />
+                Clique #{clickCount}
+              </span>
+              <span className="text-foreground">
+                Linha: <strong className="text-border-active">{lastClick.coord.row}</strong>,{' '}
+                Coluna: <strong className="text-border-active">{lastClick.coord.col}</strong>
+              </span>
+              <span className="text-text-muted text-[11px] sm:text-xs">
+                (Estado: <code className="bg-surface-panel px-1.5 py-0.5 rounded text-text-muted">{lastClick.cell.estado}</code>)
+              </span>
+            </div>
+          ) : (
+            <span className="text-text-muted italic text-center sm:text-left text-xs sm:text-sm">
+              Toque ou clique em qualquer célula para registrar coordenadas
+            </span>
+          )}
 
-            <MapFrame inspected={inspectedCell}>
-              <SimulationCanvas
-                activePresetId={activePresetId}
-                activeBrush={activeBrush}
-                framesPerTick={speed}
-                waterRadius={waterRadius}
-                disperserCount={disperserCount}
-                running={running}
-                stepTrigger={stepTrigger}
-                resetTrigger={resetTrigger}
-                onMetricsUpdate={handleMetricsUpdate}
-                onCellHover={handleCellHover}
-                className="w-full"
-              />
-            </MapFrame>
-
-            <p className="text-xs text-ink-muted">
-              Grade de 32 colunas por 24 linhas. A cada tick, todas as células mudam ao mesmo
-              tempo.
-            </p>
-          </div>
-        </main>
-
-        {/* Área de apoio (sálvia) */}
-        <aside className="relative border-t border-line bg-sage px-4 py-6 sm:px-6 lg:border-t-0 lg:border-l lg:px-8 lg:py-8 lg:after:absolute lg:after:inset-y-0 lg:after:left-full lg:after:w-screen lg:after:bg-sage">
-          <div className="mx-auto max-w-[44rem] space-y-8 lg:mx-0 lg:max-w-[36rem]">
-            <StatsCard metrics={metrics} />
-
-            <ScenarioPicker activePresetId={activePresetId} onSelectPreset={handleSelectPreset} />
-
-            <SimulationSettings
-              speed={speed}
-              onSpeedChange={handleSpeedChange}
-              waterRadius={waterRadius}
-              onWaterRadiusChange={handleWaterRadiusChange}
-              disperserCount={disperserCount}
-              onDisperserCountChange={handleDisperserCountChange}
-            />
-
-            <section aria-labelledby="rules-heading">
-              <h2 id="rules-heading" className="mb-2 text-base font-semibold">
-                Como funciona
-              </h2>
-              <ul className="list-disc space-y-2 pl-5 text-sm text-ink-muted">
-                <li>
-                  Na estiagem, um trecho de rio com menos de 3 árvores adultas nas 8 células em volta
-                  pode secar a cada tick. Na chuva, trechos secos ao lado de água voltam a encher.
-                </li>
-                <li>
-                  Sementes em terra úmida viram broto e depois árvore. Em terra seca, morrem depois de
-                  15 ticks.
-                </li>
-              </ul>
-            </section>
-          </div>
-        </aside>
+          {lastClick && (
+            <span className="text-[11px] sm:text-xs text-text-muted font-mono shrink-0">
+              {lastClick.timestamp}
+            </span>
+          )}
+        </div>
       </div>
-    </div>
+    </main>
   );
 }

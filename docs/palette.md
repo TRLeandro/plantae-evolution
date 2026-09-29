@@ -1,90 +1,105 @@
-# Paleta de cores — Plantae Evolution
+# Paleta de Cores e Design System — Plantae Evolution 🌱
 
-Detalhe das cores da interface e do mapa. As regras de uso (hierarquia, layout, tipografia, copy) estão em [`DESIGN.md`](../DESIGN.md).
+Este documento descreve as diretrizes de cores, tokens e decisões visuais do projeto **Plantae Evolution**, desenhadas para garantir legibilidade, contraste e atmosfera temática de bio-regeneração ecológica.
 
-> Designs anteriores, **não reintroduza**: tema escuro "Deep Biosphere" (`#0B130E` + `#4ADE80`) e tema de papel creme com grifo amarelo (`#F4F3EE` + `#F2D46B`).
+---
 
-A paleta sai do próprio mapa: a interface usa névoa, sálvia e o verde-escuro da mata como tinta. **Nenhuma cor de interface é mais saturada que o mapa.**
+## 1. Estrutura de Cores
 
-## Onde as cores vivem
+### 1.1 Interface (UI Foundation)
+A interface adota uma base escura (*Deep Biosphere*), permitindo que a matriz de células e os agentes polinizadores tenham protagonismo visual na tela.
 
-| Arquivo | O que tem | Quem usa |
-|---|---|---|
-| `app/globals.css` | Todos os tokens (`:root`) e o mapeamento Tailwind (`@theme inline`) | Componentes React |
-| `lib/constants.ts` | `CELL_COLORS` (fundo chapado de cada estado), `AGENT_COLOR`, `AGENT_SEED_COLOR`, `UI_COLORS` | Canvas, `MapSymbol` |
-| `components/cellArt.ts` | `TONE`: tons da ilustração dentro das células (copa, folha, semente, água, cascalho, pintas, asas) | Canvas e `MapSymbol` (mesmo código) |
-| `components/SimulationCanvas.tsx` | `MAP_SYMBOL`: grade e hover | Só o canvas |
-| `lib/colors.ts` | `PALETTE` do motor p5 antigo | Só `lib/__tests__/sketch.test.ts` |
-
-Ao mudar uma cor, atualize `globals.css` e `constants.ts` juntos; se houver equivalente em `lib/colors.ts`, atualize o hex lá (sem renomear chaves).
-
-## Interface
-
-Contraste de texto medido sobre névoa / sálvia / moldura.
-
-| Token | HEX | Contraste | Uso |
+| Variável CSS | Token Tailwind | HEX | Finalidade |
 |---|---|---|---|
-| `--mist` | `#E8EDE4` | — | Fundo da página (L\*93) |
-| `--sage` | `#D8E0D2` | — | Coluna de apoio (L\*88) |
-| `--frame` | `#F3F6EF` | — | Moldura do mapa, botões (L\*96) |
-| `--ink` | `#17261F` | 13.3 / 11.6 / 14.4 | Texto, moldura, selecionado |
-| `--ink-muted` | `#4A5A4F` | 6.2 / 5.4 / 6.7 | Texto secundário |
-| `--line` | `#A9B5A2` | — (decorativa) | Linhas finas |
-| `--control-border` | `#6B7A6E` | 3.8 / 3.4 | Borda de botão (mínimo 3:1) |
-| texto sobre selecionado | `#E8EDE4` sobre `#17261F` | 13.3 | Botão selecionado |
+| `--background` | `bg-background` | `#0B130E` | Fundo geral da aplicação |
+| `--foreground` | `text-foreground` | `#F2FBF5` | Texto principal de alto contraste |
+| `--surface-panel` | `bg-surface-panel` | `#132219` | Painéis laterais (Configurações e Impacto) |
+| `--surface-card` | `bg-surface-card` | `#1C3225` | Cards internos, inputs e botões |
+| `--surface-hover` | `hover:bg-surface-hover` | `#244030` | Feedback de hover |
+| `--border-subtle` | `border-border-subtle` | `#284B37` | Bordas e divisores discretos |
+| `--border-active` | `border-border-active` | `#4ADE80` | Foco e seleção de espécie |
+| `--text-muted` | `text-text-muted` | `#94A89C` | Rótulos secundários e unidades de medida |
 
-## Dado em texto
+---
 
-| Token | HEX | Contraste (névoa / sálvia / moldura) |
+### 1.2 Matriz e Terreno (Canvas p5.js)
+No canvas do autômato celular, o solo deve ser neutro e acolhedor, destacando a evolução biológica:
+
+| Token / Propriedade | HEX | RGB (para `p5.fill()`) | Uso |
+|---|---|---|---|
+| `grid.empty` | `#151E17` | `21, 30, 23` | Célula vazia (solo fértil) |
+| `grid.lines` | `#1C2920` | `28, 41, 32` | Linhas da matriz |
+| `grid.hover` | `#223829` | `34, 56, 41` | Célula sob o cursor do mouse |
+
+---
+
+### 1.3 Ciclo Ontogenético da Planta
+Conforme a planta se desenvolve em ticks lógicos (Sprints 1 e 2):
+
+| Estágio | HEX | RGB | Descrição Visual |
+|---|---|---|---|
+| **Semente (`seed`)** | `#D4A373` | `212, 163, 115` | Âmbar terroso, ponto inicial de plantio |
+| **Broto (`sprout`)** | `#86EFAC` | `134, 239, 172` | Verde claro enérgico, fase de crescimento rápido |
+| **Madura (`mature`)** | `#16A34A` | `22, 163, 74` | Verde esmeralda vivo, gerando $O_2$ e absorvendo $CO_2$ |
+| **Reprodução (`bloom`)** | `#FB7185` | `251, 113, 133` | Coral floral, pronta para polinização |
+
+---
+
+### 1.4 Diferenciação de Espécies (Fase 2)
+Quando múltiplas espécies coexistirem na simulação:
+
+| Espécie | Fase Madura | Fase Reprodutiva | Agente Principal |
+|---|---|---|---|
+| **Briófita** (Musgos) | `#15803D` *(Verde Floresta)* | `#BEF264` *(Esporo Lima)* | Vento 🍃 |
+| **Gimnosperma** (Arbusto/Pinho) | `#0D9488` *(Teal)* | `#FBBF24` *(Pinha Âmbar)* | Pássaro 🐦 |
+| **Angiosperma** (Flora) | `#059669` *(Esmeralda)* | `#F43F5E` *(Magenta)* | Abelha 🐝 |
+
+---
+
+### 1.5 Agentes Polinizadores
+Agentes que se movem pelo canvas e precisam de alto contraste sobre o verde e o solo escuro:
+
+| Agente | Emoji | HEX | RGB | Função |
+|---|---|---|---|---|
+| **Vento** | 🍃 | `#67E8F9` | `103, 232, 249` | Dispersão difusa / etérea |
+| **Abelha** | 🐝 | `#FACC15` | `250, 204, 21` | Polinização de curto alcance |
+| **Pássaro** | 🐦 | `#FB923C` | `251, 146, 60` | Dispersão de frutos de longo alcance |
+
+---
+
+### 1.6 Painel de Impacto Ambiental
+Para o painel lateral direito de métricas acumuladas:
+
+| Indicador | HEX | Significado |
 |---|---|---|
-| `--water-text` | `#155A73` | 6.4 / 5.7 / 7.0 |
-| `--soil-text` | `#6F4820` | 6.7 / 5.9 / 7.3 |
-| `--tree-text` | `#2F5D3A` | 6.4 / 5.7 / 7.0 |
-| `--rust-text` | `#9A3A24` | 5.9 / 5.2 / 6.4 |
+| **$O_2$ Gerado** | `#38BDF8` | Oxigênio gerado, atmosfera limpa e pura |
+| **$CO_2$ Capturado** | `#34D399` | Carbono capturado pela fotossíntese |
+| **Aquecimento Crítico** | `#EF4444` | Alerta de alta temperatura planetária |
+| **Aquecimento Regenerado** | `#10B981` | Equilíbrio térmico recuperado |
 
-As cores do mapa com o mesmo matiz (`#1B6E8C`, `#9C6934`, `#B4472F`) não passam de 4.5:1 sobre a sálvia; por isso existem estas versões para texto.
+---
 
-## Mapa
+## 2. Como Utilizar no Código
 
-Ordenado por luminosidade. Todas abaixo da página (L\*93).
+### No React com Tailwind CSS:
+```tsx
+<aside className="bg-surface-panel border-r border-border-subtle p-4">
+  <div className="bg-surface-card border border-border-subtle hover:border-border-active p-3 rounded-lg">
+    <h3 className="text-foreground font-semibold">Geração de O₂</h3>
+    <span className="text-metric-o2 text-2xl font-bold">+1.240 kg</span>
+  </div>
+</aside>
+```
 
-Duas medidas: o L\* do **fundo chapado** (`CELL_COLORS`) e o L\* **médio da célula já ilustrada**, medido nos pixels reais do canvas renderizado (cenário "Em recuperação", simulação pausada, média de todas as células de cada estado; a grade de 1px fica de fora). O limite 1 do `DESIGN.md` vale para a segunda coluna: cada estado precisa se separar dos vizinhos pela luminosidade média, não só pelo desenho.
+### No Canvas p5.js com `lib/colors.ts`:
+```typescript
+import { PALETTE, hexToRgb } from '@/lib/colors';
 
-| Estado | `CellState` | Token CSS | Fundo | L\* fundo | L\* médio 20px (completo) | L\* médio ~11px (simplificado) |
-|---|---|---|---|---|---|---|
-| Árvore adulta | `ARVORE_ADULTA` | `--map-tree` | `#2F5D3A` | 35 | 36 | 36 |
-| Rio com água | `LEITO_AGUA` | `--map-water` | `#1B6E8C` | 43 | 44 | 46 |
-| Terra úmida | `SOLO_FERTIL` | `--map-wet-soil` | `#9C6934` | 49 | 49 | 49 |
-| Semente | `SEMENTE` | `--map-seed-ground` | `#AA7644` | 54 | 55 | 56 |
-| Broto | `BROTO` | `--map-sprout` | `#6FA96B` | 64 | 60 | 62 |
-| Rio seco | `LEITO_SECO` | `--map-dry-river` | `#A7AE9F` | 70 | 69 | 68 |
-| Terra seca | `SOLO_SECO` | `--map-dry-soil` | `#D6C49A` | 80 | 80 | 80 |
+// Desenhando uma célula madura
+p5.fill(...hexToRgb(PALETTE.stages.mature));
+p5.rect(x, y, cellSize, cellSize);
 
-Ajustes feitos por causa dessa medida:
-
-- A terra úmida foi clareada de `#8A5A2B` para `#9C6934`: com o valor original ela tinha a mesma luminosidade da água (L\*43), e as duas se encostam em toda margem.
-- A semente ganhou fundo próprio (`#AA7644`, "terra revolvida"). Com o fundo da terra úmida, a célula de semente ficava a 2 pontos de L\* dela e só o desenho a distinguia.
-- No desenho simplificado, o broto usa folhas em tom médio e a semente é menor: com folhas escuras, broto e semente empatavam em L\*57 no mobile.
-
-### Tons da ilustração (`TONE` em `components/cellArt.ts`)
-
-| Elemento | Cores |
-|---|---|
-| Copa da árvore (degradê radial) | luz `#528C52` → corpo `#33653D` → sombra `#1F4228`; tronco `#4A3320` |
-| Broto | caule `#3E6B35`; folhas `#35692F` e `#4A8A40` |
-| Semente (degradê radial) | luz `#F3DDA6` → corpo `#E6C27A` → borda `#B98A3E`; sulco `#9C7432` |
-| Água | fundo mais fundo `#17637E`; ondulações `#7FB3C4` |
-| Rio seco | tracejado `#1B6E8C`; cascalho `#8E958A` e `#C3C8BC` |
-| Terra úmida | pintas `#86592B` e `#AE7A42` |
-| Terra seca | pintas e rachadura `#C2AE80`, `#E2D3AE` |
-| Sombra de chão | `rgba(23, 38, 31, 0.28)`, deslocada 1–1.5px |
-| Polinizador (degradê radial) | `#F2C457` → `#E0A526` → `#B97F10`; listras e cabeça `#17261F`; asas `rgba(232, 240, 236, 0.6)` com borda de tinta a 35%; rastro de tinta a 18% |
-| Semente carregada | `#E6C27A` com borda `#B98A3E` |
-
-### Grade e cursor (cromo, `MAP_SYMBOL` em `SimulationCanvas.tsx`)
-
-| Elemento | Cor |
-|---|---|
-| Grade | `rgba(23, 38, 31, 0.12)` |
-| Célula sob o cursor | contorno `#17261F` 2px + `rgba(243, 246, 239, 0.5)` |
-| Seca crítica (barra da interface) | `#B4472F` |
+// Desenhando o agente Abelha
+p5.fill(...hexToRgb(PALETTE.agents.bee.color));
+p5.circle(agentX, agentY, 8);
+```

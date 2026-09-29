@@ -1,11 +1,7 @@
 <!-- BEGIN:nextjs-agent-rules -->
-
 # This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
 # AGENTS.md — Plantae Evolution 🌱
@@ -16,7 +12,7 @@ Guia de contexto, arquitetura, regras de domínio e convenções técnicas para 
 
 ## 1. Visão Geral do Projeto
 
-**Plantae Evolution** é uma aplicação web baseada em um **autômato celular** interativo que simula o ciclo de vida, crescimento e dispersão biológica de espécies vegetais em um ecossistema planetário. A simulação enfatiza a polinização por agentes bióticos e abióticos (vento, abelhas, pássaros) e quantifica o impacto ambiental positivo da vegetação no combate ao aquecimento global (produção de $O_2$ e sequestro de $CO_2$).
+**Plantae Evolution** é uma aplicação web baseada em um **autômato celular** interativo que simula o ciclo de vida, crescimento e dispersão biológica de espécies vegetais em um ecossistema planetário. A simulação enfatiza a polinização por agentes bióticos e abióticos (vento, abelhas, pássaros) e quantifica o impacto ambiental positivo da vegetação no combate ao aquecimento global (geração de $O_2$ e sequestro de $CO_2$).
 
 ---
 
@@ -25,35 +21,24 @@ Guia de contexto, arquitetura, regras de domínio e convenções técnicas para 
 - **Framework:** Next.js (App Router, v16+) com React 19.
 - **Linguagem:** TypeScript (modo estrito).
 - **Estilização & UI:** Tailwind CSS v4 (configurado via `@import "tailwindcss";` e `@theme inline` em `app/globals.css`).
-- **Motor Gráfico da Simulação:** **Canvas 2D nativo** em `components/SimulationCanvas.tsx`, com loop próprio via `requestAnimationFrame` dentro de `useEffect` (só no cliente). O motor da bacia é `lib/engine.ts` (`SimulationEngine`).
-  - **p5.js não é usado na página.** `lib/sketch.ts` e `lib/colors.ts` são o motor p5 antigo e só existem porque `lib/__tests__/sketch.test.ts` depende deles. Não delete nem renomeie chaves; apenas mantenha os valores hex sincronizados.
-- **Fontes:** IBM Plex Sans (texto, botões, números) e IBM Plex Sans Condensed (só legenda e rótulos do mapa), via `next/font/google` em `app/layout.tsx`.
-- **Design Tokens:** definidos em `app/globals.css` (`:root` + `@theme inline`). As cores do mapa ficam em `lib/constants.ts` (`CELL_COLORS`, `AGENT_COLOR`, `AGENT_SEED_COLOR`, `UI_COLORS`) e espelhadas em `--map-*`. Contrato visual completo em **`DESIGN.md`**.
+- **Motor Gráfico da Simulação:** p5.js em **modo instância** (`new p5(sketch, containerRef)`), integrado via dynamic import client-side (`ssr: false`) ou `useEffect` para evitar falhas de SSR/hidratação.
+- **Design Tokens:** Centralizados em `lib/colors.ts` (objeto `PALETTE` e função `hexToRgb()`) e espelhados em variáveis CSS / Tailwind em `app/globals.css`.
 
 ---
 
 ## 3. Arquitetura da Aplicação & Sincronização
 
-### 3.1 Layout (`app/page.tsx`)
-Um contêiner centralizado de até 1400px (`mx-auto max-w-[1400px]`) com duas áreas de cor lado a lado; a partir de `lg`, grid `[minmax(0,48rem) | minmax(22rem,1fr)]` (em tela larga quem cresce é a sálvia). O conteúdo fica sempre no contêiner; só o fundo da sálvia se estende até a borda direita da janela (`::after` no `<aside>`). No mobile as áreas empilham nessa ordem:
-
-1. **Área de névoa** (protagonista, até `48rem`):
-   - Título e duas frases de abertura.
-   - `SeasonIndicator`: estação, efeito dela no rio, barra de progresso. Recebe `PlaybackControls` (Pausar/Continuar, Avançar 1 tick, Reiniciar) via prop `actions`.
-   - `BrushPicker`: os 7 pincéis, **logo acima do mapa** em qualquer largura.
-   - `MapFrame`: moldura de carta em volta do `SimulationCanvas`, com marcas de linha/coluna na margem, barra de escala, barra de inspeção e a legenda (8 itens).
-   - Uma linha com o tamanho da grade, como a escala de uma carta.
-2. **Área de sálvia** (apoio): `StatsCard` (4 números), `ScenarioPicker` (4 cenários), `SimulationSettings` (quadros por tick, alcance da água, polinizadores) e "Como funciona" (2 itens).
-
-`BrushPicker`, `PlaybackControls`, `ScenarioPicker` e `SimulationSettings` são exports nomeados de `components/ControlBar.tsx`. A ilustração de dentro das células (árvore, broto, semente, água, terra, polinizador) fica em `components/cellArt.ts` e é usada tanto pelo canvas quanto por `components/MapSymbol.tsx` (legenda, pincéis, inspeção). Regras e limites dessa ilustração em `DESIGN.md` › "Dentro da célula do mapa". Não existem `ConfigPanel` nem `ImpactPanel`.
+### 3.1 Layout de 3 Painéis
+A interface do usuário é estruturada em três áreas principais:
+1. **Menu Lateral Esquerdo (`ConfigPanel`):** Seleção da espécie ativa (1 a 3 espécies), slider de velocidade (ticks lógicos), botões de controle (iniciar, pausar, reiniciar, finalizar).
+2. **Área Central (`SimulationCanvas`):** Canvas interativo do autômato celular (renderização do solo, plantas, agentes voadores, partículas e clique para plantio).
+3. **Menu Lateral Direito (`ImpactPanel`):** Métricas ecológicas planetárias (acumulado de $O_2$ gerado, $CO_2$ capturado e termômetro de regeneração climática).
 
 ### 3.2 Gerenciamento de Estado
 - O estado de controle e métricas reside primariamente no componente pai (`app/page.tsx`) e é propagado via `props` para os painéis.
-- **Regra Crítica de Performance (Canvas ↔ React):**
-  - O loop de `requestAnimationFrame` em `SimulationCanvas.tsx` executa a ~60 FPS e **NÃO** deve disparar `setState` do React a cada frame.
-  - As métricas da bacia (`SimulationMetrics`) ficam no `SimulationEngine` e são enviadas ao React com *throttle* (a cada 15 quadros visuais, ~4 vezes por segundo) via `onMetricsUpdate`.
-  - Props do React (pincel, velocidade, raio da água, callbacks) chegam ao loop por `useRef`, para não recriar o motor.
-  - *Nota histórica:* os dois itens abaixo descrevem o motor p5 antigo (`lib/sketch.ts`), mantido só por causa dos testes.
+- **Regra Crítica de Performance (p5.js ↔ React):**
+  - O loop gráfico `draw()` do p5.js executa a ~60 FPS e **NÃO** deve disparar `setState` do React a cada frame.
+  - As métricas ecológicas ($O_2$ e $CO_2$) são acumuladas internamente no motor de simulação e sincronizadas com o React com *throttle* (ex: 1 vez por segundo ou a cada N ticks lógicos).
   - O controle de velocidade da simulação **NÃO** altera o `frameRate()` do p5. Em vez disso, altera o contador de **ticks lógicos** (quantidade de frames p5 decorridos entre cada atualização de estado da matriz), centralizado no módulo puro `lib/tick.ts` (`createTickState`, `advanceFrame`, `setSpeed`). A cada tick lógico disparado, o motor de ontogenia puro `lib/lifecycle.ts` (`advanceGrid`) avança o ciclo de vida das células. Enquanto isso, agentes atmosféricos como o Vento (`lib/wind.ts`) deslocam-se de forma contínua e suave a cada quadro visual (~60 FPS) sobre o grid.
   - **Comunicação de Eventos (p5 ↔ React):** Eventos de interação (como `p.mousePressed`) e parâmetros reativos (como velocidade de ticks) são integrados através de opções em `createSketch({ onCellClick, getFramesPerTick, windAgentCount })`. No componente React, esses callbacks e referências são estabilizados via `useRef` para garantir integridade sem reiniciar o ciclo de vida do sketch.
 
@@ -120,27 +105,45 @@ Quando um agente tenta disseminar uma espécie para uma célula-alvo:
 
 ---
 
-## 5. Design e Tokens Visuais
+## 5. Sistema de Cores e Tokens Visuais
 
-**A fonte de verdade é `DESIGN.md`** (direção, tokens, tipografia, espaçamento, copy e o que nunca fazer). Detalhe de cada cor, com contraste e luminosidade, em `docs/palette.md`.
+Consulte sempre `lib/colors.ts` para o uso em TypeScript/p5.js e `app/globals.css` para classes Tailwind.
 
-Resumo: carta hidrográfica com as cores do próprio bioma. **Regra de hierarquia: nada da interface é mais saturado que o mapa.** O botão selecionado é fundo de tinta com texto claro; o foco de teclado é um contorno externo em tinta.
+### 5.1 Tokens de UI (Base *Deep Biosphere*)
+- Fundo Principal: `--background` / `#0B130E`
+- Texto Principal: `--foreground` / `#F2FBF5`
+- Painéis Laterais: `--surface-panel` / `#132219`
+- Cards e Botões: `--surface-card` / `#1C3225`
+- Hover de Cards: `--surface-hover` / `#244030`
+- Borda Discreta: `--border-subtle` / `#284B37`
+- Borda Ativa / Seleção: `--border-active` / `#4ADE80`
+- Texto Muted: `--text-muted` / `#94A89C`
 
-Dois regimes: **dentro da célula do mapa** a ilustração pode ter volume, vários tons e degradê sutil (com 4 limites: leitura do estado por luminosidade, tamanho real, determinismo por coordenada, custo); **na interface** tudo é chapado, sem degradê, sombra ou brilho.
+### 5.2 Tokens da Matriz & Renderização Gráfica
+```typescript
+import { PALETTE, hexToRgb } from '@/lib/colors';
 
-| Papel | Token CSS | Classe Tailwind | HEX |
-|---|---|---|---|
-| Fundo da página (névoa) | `--mist` | `bg-mist` | `#E8EDE4` |
-| Coluna de apoio (sálvia) | `--sage` | `bg-sage` | `#D8E0D2` |
-| Moldura do mapa, botões | `--frame` | `bg-frame` | `#F3F6EF` |
-| Tinta (texto, selecionado) | `--ink` | `text-ink` / `bg-ink` | `#17261F` |
-| Texto secundário | `--ink-muted` | `text-ink-muted` | `#4A5A4F` |
-| Linha fina | `--line` | `border-line` | `#A9B5A2` |
-| Borda de controle | `--control-border` | `border-control-border` | `#6B7A6E` |
+// Célula vazia: PALETTE.grid.empty ('#151E17')
+// Grade: PALETTE.grid.lines ('#1C2920')
+// Hover do cursor: PALETTE.grid.hover ('#223829')
 
-Cores de dado em texto: `text-water-text`, `text-soil-text`, `text-tree-text`, `text-rust-text` (versões escurecidas das cores do mapa, AA sobre sálvia).
+// Estágios da Planta:
+// PALETTE.stages.seed ('#D4A373')
+// PALETTE.stages.sprout ('#86EFAC')
+// PALETTE.stages.mature ('#16A34A')
+// PALETTE.stages.bloom ('#FB7185')
 
-Cores do mapa: `CELL_COLORS` em `lib/constants.ts` = `--map-*` em `app/globals.css`. Alterou uma, altere a outra (e o valor equivalente em `lib/colors.ts`).
+// Agentes Polinizadores:
+// PALETTE.agents.wind.color ('#67E8F9')
+// PALETTE.agents.bee.color ('#FACC15')
+// PALETTE.agents.bird.color ('#FB923C')
+```
+
+### 5.3 Métricas Ambientais
+- $O_2$ Gerado: `--metric-o2` / `#38BDF8`
+- $CO_2$ Capturado: `--metric-co2` / `#34D399`
+- Aquecimento Crítico: `--warming-high` / `#EF4444`
+- Planeta Regenerado: `--warming-low` / `#10B981`
 
 ---
 
@@ -165,8 +168,8 @@ O projeto é dividido em **Fase 1 (MVP)** e **Fase 2 (Incrementos)**:
 ## 7. Diretrizes para Agentes de Código
 
 Ao desenvolver ou refatorar código neste repositório:
-1. **Preserve a separação motor ↔ React:** A lógica do grid e dos agentes fica em `lib/` (`engine.ts` e módulos puros); `SimulationCanvas.tsx` só desenha e repassa eventos.
-2. **Evite conflitos de SSR:** Qualquer uso de `window`, `document` ou do contexto do canvas acontece só no cliente (`useEffect` em componentes `'use client'`).
-3. **Respeite o `DESIGN.md`:** Use os tokens de `app/globals.css` e as cores de `lib/constants.ts`. Nada de emoji como ícone, caixa alta com tracking, gradiente, card em volta de tudo ou texto abaixo de 13px. Nunca invente cores fora da paleta sem justificativa explícita.
+1. **Preserve a separação p5 ↔ React:** Mantenha a lógica matemática do grid e dos agentes desacoplada da camada visual de componentes React.
+2. **Evite conflitos de SSR:** Qualquer uso de `window`, `document` ou instâncias do `p5` deve acontecer exclusivamente no ciclo de vida do cliente (`useEffect` ou componentes com `'use client'` e carregamento dinâmico sem SSR).
+3. **Respeite o Design System:** Utilize sempre as variáveis de cor e tokens de `lib/colors.ts` e `globals.css`. Nunca invente cores fora da paleta sem justificativa explícita.
 4. **Código em TypeScript:** Tipar explicitamente as entidades da simulação (`Cell`, `TickState`, `Agent`, `SpeciesConfig`, `SimulationMetrics`).
 5. **Progressão Gradual pelas Sprints:** Não introduza complexidade da Fase 2 antes de consolidar os critérios de aceite do MVP (Sprint 0 e Sprint 1).
