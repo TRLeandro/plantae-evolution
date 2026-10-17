@@ -13,8 +13,9 @@ import { useEffect, useRef } from 'react';
 import { CellState } from '@/lib/types';
 import { CELL_COLORS, UI_COLORS } from '@/lib/constants';
 import { DETAIL_THRESHOLD_PX, drawCellArt, drawPollinator } from '@/components/cellArt';
+import { drawClouds } from '@/components/cloudArt';
 
-export type MapSymbolKind = CellState | 'pollinator' | 'deforest' | 'none';
+export type MapSymbolKind = CellState | 'pollinator' | 'cloud' | 'deforest' | 'none';
 
 const SEED_COLOR = '#E6C27A';
 
@@ -41,6 +42,14 @@ export default function MapSymbol({
     ctx.setTransform((size * dpr) / 20, 0, 0, (size * dpr) / 20, 0, 0);
     ctx.clearRect(0, 0, 20, 20);
     const detail = size >= DETAIL_THRESHOLD_PX ? 'full' : 'simple';
+
+    if (kind === 'cloud') {
+      ctx.save();
+      ctx.scale(0.32, 0.32);
+      drawClouds(ctx, [{ id: 0, x: 31, y: 23, vx: 0, vy: 0, radius: 22, life: 1, opacity: 0.85 }], 0);
+      ctx.restore();
+      return;
+    }
 
     if (kind === 'pollinator') {
       ctx.fillStyle = UI_COLORS.surfaceCard;

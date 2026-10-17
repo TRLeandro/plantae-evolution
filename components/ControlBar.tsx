@@ -41,7 +41,7 @@ export const BRUSHES: Array<{ id: BrushTool; label: string; hint: string; symbol
   {
     id: 'plant_seed',
     label: 'Semente',
-    hint: 'Deixa uma semente. Ela só brota em terra úmida.',
+    hint: 'Deixa uma semente. Brota com água por perto ou com a ajuda da chuva.',
     symbol: CellState.SEMENTE,
   },
   {

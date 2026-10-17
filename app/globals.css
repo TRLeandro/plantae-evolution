@@ -37,6 +37,13 @@
   --map-tree: #2f5d3a;
   --map-pollinator: #e0a526;
   --map-rust: #b4472f;       /* seca crítica: barras e marcações, não texto */
+
+  /* Atmosfera: cores originais das nuvens, espelha CLOUD_COLORS. */
+  --map-cloud-shadow: rgba(14, 165, 233, 0.12);
+  --map-cloud-rain: rgba(56, 189, 248, 0.7);
+  --map-cloud-halo: rgba(186, 230, 253, 0.22);
+  --map-cloud-body: rgba(240, 249, 255, 0.88);
+  --map-cloud-highlight: rgba(255, 255, 255, 0.65);
 }
 
 @theme inline {

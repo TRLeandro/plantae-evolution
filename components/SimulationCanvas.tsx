@@ -36,6 +36,7 @@ import {
 } from '@/components/cellArt';
 import { mouseToGridCoord, isCoordValid } from '@/lib/utils';
 import { PRESETS } from '@/lib/presets';
+import { drawClouds } from '@/components/cloudArt';
 
 // Cores da grade e do destaque sob o cursor (a ilustração das células fica em cellArt.ts)
 const MAP_SYMBOL = {
@@ -74,20 +75,24 @@ export default function SimulationCanvas({
 
   // Instância do motor mantida internamente na ref do Canvas
   const engineRef = useRef<SimulationEngine | null>(null);
+  const initialOptionsRef = useRef({ activePresetId, waterRadius, framesPerTick, disperserCount, running });
+  const disperserCountRef = useRef(disperserCount);
 
   // Inicializa engine na montagem ou via ref
   const getEngine = useCallback(() => {
     if (!engineRef.current) {
-      const preset = PRESETS[activePresetId] ?? PRESETS.balanced;
+      const initial = initialOptionsRef.current;
+      const preset = PRESETS[initial.activePresetId] ?? PRESETS.balanced;
       engineRef.current = new SimulationEngine(preset.createGrid(), {
-        waterRadius,
-        framesPerTick,
-        disperserCount: disperserCount !== undefined ? disperserCount : undefined,
+        waterRadius: initial.waterRadius,
+        framesPerTick: initial.framesPerTick,
+        ...(initial.disperserCount !== undefined ? { disperserCount: initial.disperserCount } : {}),
       });
       engineRef.current.season = preset.initialSeason;
+      engineRef.current.running = initial.running;
     }
     return engineRef.current;
-  }, [activePresetId, waterRadius, framesPerTick, disperserCount]);
+  }, []);
 
   // Referências sincronizadas para o loop de requestAnimationFrame
   const activeBrushRef = useRef(activeBrush);
@@ -121,6 +126,7 @@ export default function SimulationCanvas({
   }, [waterRadius]);
 
   useEffect(() => {
+    disperserCountRef.current = disperserCount;
     if (disperserCount !== undefined) {
       const eng = engineRef.current;
       if (eng) {
@@ -151,11 +157,11 @@ export default function SimulationCanvas({
     const eng = getEngine();
     const preset = PRESETS[activePresetId] ?? PRESETS.balanced;
     eng.loadGrid(preset.createGrid(), preset.initialSeason);
-    if (disperserCount !== undefined) {
-      eng.setDisperserCount(disperserCount);
+    if (disperserCountRef.current !== undefined) {
+      eng.setDisperserCount(disperserCountRef.current);
     }
     onMetricsUpdateRef.current?.(eng.getMetrics());
-  }, [activePresetId, resetTrigger, getEngine, disperserCount]);
+  }, [activePresetId, resetTrigger, getEngine]);
 
   // Avançar 1 tick manualmente
   useEffect(() => {
@@ -222,6 +228,7 @@ export default function SimulationCanvas({
 
         // Movimentação fluida contínua dos dispersores a 60 FPS
         eng.updateDispersersMotion();
+        eng.updateCloudsMotion();
       }
 
       // Sincronização throttled de métricas com o React (~4x por segundo)
@@ -266,7 +273,10 @@ export default function SimulationCanvas({
         drawPollinator(ctx, d.x, d.y, d.vx, d.vy, d.hasSeed, visualFrameCount, d.id, detail);
       }
 
-      // 4. Destaque de Célula sob o Cursor
+      // 4. Nuvens e gotas sobre o mapa, como na implementação original.
+      drawClouds(ctx, eng.clouds, visualFrameCount);
+
+      // 5. Destaque de Célula sob o Cursor
       const hover = hoverCoordRef.current;
       if (hover && isCoordValid(hover, cols, rows)) {
         const hx = hover.col * CELL_SIZE;

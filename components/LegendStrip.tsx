@@ -13,11 +13,12 @@ export const LEGEND: Array<{ kind: MapSymbolKind; label: string; text: string }>
   { kind: CellState.LEITO_AGUA, label: 'Rio com água', text: 'molha a terra em volta' },
   { kind: CellState.LEITO_SECO, label: 'Rio seco', text: 'evaporou na estiagem' },
   { kind: CellState.SOLO_FERTIL, label: 'Terra úmida', text: 'sementes brotam aqui' },
-  { kind: CellState.SOLO_SECO, label: 'Terra seca', text: 'sementes não brotam aqui' },
+  { kind: CellState.SOLO_SECO, label: 'Terra seca', text: 'sementes dependem da chuva' },
   { kind: CellState.SEMENTE, label: 'Semente', text: 'vira broto em terra úmida' },
   { kind: CellState.BROTO, label: 'Broto', text: 'cresce até virar árvore' },
   { kind: CellState.ARVORE_ADULTA, label: 'Árvore adulta', text: '3 ou mais seguram o rio' },
   { kind: 'pollinator', label: 'Polinizador', text: 'leva sementes pelo mapa' },
+  { kind: 'cloud', label: 'Nuvem de chuva', text: 'molha a terra e ajuda a germinar' },
 ];
 
 export default function LegendStrip() {

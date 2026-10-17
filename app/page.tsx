@@ -61,6 +61,7 @@ export default function Home() {
     currentSeason: ClimateSeason.CHUVOSA,
     seasonProgress: 0,
     totalTicks: 0,
+    cloudCount: 0,
   });
 
   // Inspeção da célula sob o cursor
@@ -230,8 +231,14 @@ export default function Home() {
               pode secar a cada tick. Na chuva, trechos secos ao lado de água voltam a encher.
             </li>
             <li>
-              Sementes em terra úmida viram broto e depois árvore. Em terra seca, morrem depois de
-              15 ticks.
+              Sementes com água por perto viram broto e depois árvore. Sem água nem ajuda da
+              chuva, morrem depois de 15 ticks.
+            </li>
+            <li>
+              Na estação chuvosa, nuvens surgem sobre concentrações de água ou chegam pelas
+              bordas. A chuva tem 70% de chance por tick de molhar terra seca e 20% de fazer
+              uma semente brotar por encontro com a cobertura de nuvens. A umidade sustenta
+              brotos por 25 ticks e protege o rio da evaporação por 30 ticks.
             </li>
           </ul>
         </section>

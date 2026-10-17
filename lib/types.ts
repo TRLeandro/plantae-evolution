@@ -35,6 +35,14 @@ export interface Cell {
   state: CellState;
   /** Ciclos decorridos no estado atual (usado para germinação, maturação ou degradação) */
   age: number;
+  /** Reserva de umidade fornecida por chuva de nuvens (retarda evaporação e secamento) */
+  cloudMoisture?: number;
+  /**
+   * Flag de memória: indica que esta semente já recebeu sua tentativa de germinação neste
+   * encontro com uma nuvem. Evita múltiplos rolamentos enquanto a nuvem paira sobre a célula.
+   * Resetado automaticamente quando a semente sai da área de cobertura de todas as nuvens.
+   */
+  hasReceivedCloud?: boolean;
 }
 
 /** Matriz bidimensional de células */
@@ -66,6 +74,29 @@ export interface Disperser {
 }
 
 /**
+ * Agente atmosférico: Nuvem de chuva.
+ * Surge na estação chuvosa por condensação sobre corpos d'água densos (>= 4 canais em raio 1)
+ * ou pelas bordas da simulação (5% de chance).
+ */
+export interface Cloud {
+  id: number;
+  /** Posição horizontal contínua em pixels */
+  x: number;
+  /** Posição vertical contínua em pixels */
+  y: number;
+  /** Velocidade horizontal em pixels por frame */
+  vx: number;
+  /** Velocidade vertical em pixels por frame */
+  vy: number;
+  /** Raio da nuvem em pixels */
+  radius: number;
+  /** Duração restante da nuvem em ticks */
+  life: number;
+  /** Opacidade visual da nuvem */
+  opacity: number;
+}
+
+/**
  * Contrato de parâmetros e taxas da simulação.
  */
 export interface SimConfig {
@@ -93,6 +124,10 @@ export interface SimConfig {
   disperserDropProbability: number;
   /** Cadência padrão de frames por tick lógico */
   framesPerTick: number;
+  /** Ciclos que um solo fértil retém fertilidade sem água contínua antes de dessecar (padrão: 20) */
+  fertileSoilRetentionCycles?: number;
+  /** Chance de uma semente germinar ao ser sobrevoada por uma nuvem de chuva (padrão: 0.20 = 20%) */
+  cloudSeedGerminationProbability?: number;
 }
 
 /**
@@ -120,6 +155,8 @@ export interface SimulationMetrics {
   totalTicks: number;
   /** Quantidade atual de agentes dispersores ativos */
   disperserCount?: number;
+  /** Quantidade atual de nuvens ativas na simulação */
+  cloudCount?: number;
 }
 
 /**

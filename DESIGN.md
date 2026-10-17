@@ -114,6 +114,26 @@ Código: `components/cellArt.ts`. É o **único** lugar do projeto onde volume e
 
 A água não ondula no tempo; o que se move é só o que é estado real (polinizadores voando, asas batendo).
 
+### Nuvens de chuva sobre o mapa
+
+`components/cloudArt.ts` preserva o desenho da branch `mudancas-adicionadas-gustavo-samuel`
+do repositório `leonardo-Trex/automato-finito-FSI`, conforme solicitado: círculos sobrepostos,
+halo atmosférico, mancha de umidade e três gotas animadas. Esta camada atmosférica é uma
+exceção às restrições de volume e halo fora das células; os controles continuam chapados.
+Ela é desenhada após os polinizadores e antes da inspeção, sem alterar o atlas das células.
+Não usa aleatoriedade no desenho e contém no máximo oito nuvens.
+
+As cores originais são mantidas para reproduzir fielmente a referência, centralizadas em
+`CLOUD_COLORS` (`lib/constants.ts`) e espelhadas em `--map-cloud-*` (`app/globals.css`):
+
+| Papel | Token | Cor |
+|---|---|---|
+| Mancha de umidade | `map-cloud-shadow` | `rgba(14, 165, 233, 0.12)` |
+| Gotas | `map-cloud-rain` | `rgba(56, 189, 248, 0.7)` |
+| Halo atmosférico | `map-cloud-halo` | `rgba(186, 230, 253, 0.22)` |
+| Corpo | `map-cloud-body` | `rgba(240, 249, 255, 0.88)` |
+| Luz superior | `map-cloud-highlight` | `rgba(255, 255, 255, 0.65)` |
+
 ### Legenda, pincéis e inspeção
 
 `components/MapSymbol.tsx` chama as **mesmas funções** de `cellArt.ts` num canvas pequeno (variante 0, com `devicePixelRatio`), então é idêntico ao mapa por construção. Não existe versão simplificada em SVG.

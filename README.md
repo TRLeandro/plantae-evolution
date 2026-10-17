@@ -26,6 +26,9 @@ A simulação avança em **ticks**: a cada tick, todas as células do mapa são 
 - **Sementes**: em terra úmida viram broto e depois árvore adulta. Em terra seca, morrem depois de 15 ticks.
 - **Polinizadores**: pegam sementes nas árvores e deixam cair em outros pontos do mapa.
 - **Estações**: a estação chuvosa e a estiagem se alternam. Na chuva, trechos de rio seco ao lado de água voltam a encher.
+- **Nuvens de chuva**: até oito nuvens aparecem na estação chuvosa. Há 25% de chance por tick de condensação onde existem pelo menos quatro células de água num bloco de 3×3, e 5% de chance de entrada pelas bordas. A chuva tem 70% de chance por tick de transformar terra seca em úmida e 20% de germinar uma semente por encontro com a cobertura de nuvens. Brotos recebem 25 ticks de umidade e rios, 30 ticks de proteção contra evaporação; depois da umidade, a terra fértil ainda resiste por 20 ticks sem água.
+
+As nuvens reproduzem a lógica, as formas, as cores e a animação da [implementação dos colegas](https://github.com/leonardo-Trex/automato-finito-FSI/tree/37f31204756e7208c507b264cde250e7a82e764a), na branch `mudancas-adicionadas-gustavo-samuel`. A germinação segue o valor efetivo de 20% do código original (alguns comentários daquela versão ainda mencionam 5%).
 
 ---
 
@@ -37,7 +40,7 @@ Os nomes abaixo são os mesmos que aparecem na tela.
 
 - **Pincel** (clique ou arraste no mapa, com mouse ou toque):
   - **Árvore**: planta uma árvore adulta.
-  - **Semente**: deixa uma semente; ela só brota em terra úmida.
+  - **Semente**: deixa uma semente; ela brota com água por perto ou com a ajuda da chuva.
   - **Desmatar**: tira árvores, brotos e sementes.
   - **Rio**: abre um trecho de rio com água.
   - **Secar rio**: seca um trecho de rio que tem água.

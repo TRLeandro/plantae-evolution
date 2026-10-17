@@ -38,6 +38,16 @@ export const CELL_COLORS: Record<CellState, string> = {
 export const AGENT_COLOR = '#E0A526';      // Polinizador (âmbar, o ponto mais saturado do mapa)
 export const AGENT_SEED_COLOR = '#E6C27A'; // Semente carregada pelo polinizador
 
+// Cores da camada atmosférica original (exceção documentada em DESIGN.md).
+// Espelha --map-cloud-* em app/globals.css.
+export const CLOUD_COLORS = {
+  shadow: 'rgba(14, 165, 233, 0.12)',
+  rain: 'rgba(56, 189, 248, 0.7)',
+  halo: 'rgba(186, 230, 253, 0.22)',
+  body: 'rgba(240, 249, 255, 0.88)',
+  highlight: 'rgba(255, 255, 255, 0.65)',
+};
+
 // Cores de UI e Interface (espelha app/globals.css)
 export const UI_COLORS = {
   background: '#E8EDE4',
@@ -69,5 +79,7 @@ export const DEFAULT_SIM_CONFIG: SimConfig = {
   treeMortalityRate: 0.001,           // Senescência natural mínima (0.1% por tick)
   disperserCount: 10,                 // 10 agentes polinizadores
   disperserDropProbability: 0.06,     // 6% de chance por tick de soltar semente em solo
+  fertileSoilRetentionCycles: 20,    // Retenção após acabar a água do rio ou a umidade da chuva
+  cloudSeedGerminationProbability: 0.20, // Uma tentativa por encontro com a cobertura de nuvens
   framesPerTick: 12,                  // ~5 ticks/seg a 60 FPS
 };
